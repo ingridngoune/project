@@ -16,6 +16,7 @@ public enum SymbolType {
     RETURN,
     NOT,
     ARRAY,
+    DEF,
 
     //list of types
     INT_TYPE,
@@ -23,14 +24,13 @@ public enum SymbolType {
     BOOL_TYPE,
     STRING_TYPE,
 
-    //list of values
+    //list of lITERAL
     INT_LITERAL,
     FLOAT_LITERAL,
     STRING_LITERAL,
     BOOL_LITERAL,
 
     IDENTIFIER,
-    COLLECTION,
 
     //list of logical Opererators
     ASSIGN,
@@ -56,7 +56,7 @@ public enum SymbolType {
 
     ARROW,
 
-    //list of special caracter
+    //list of special caractere
 
     LEFT_PAREN,RIGHT_PAREN,
     LEFT_BRACKET,RIGHT_BRACKET,
