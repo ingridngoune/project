@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Lexer {
-    private final Reader input;
+    private final Reader sourceFile;
     private int currentChar;
     private static final Map<String, SymbolType> WORDS =new HashMap<>();
     private static final Map<String, SymbolType> OPERATORS =new HashMap<>();
@@ -22,7 +22,7 @@ public class Lexer {
         WORDS.put("else",SymbolType.ELSE);
         WORDS.put("return",SymbolType.RETURN);
         WORDS.put("not",SymbolType.NOT);
-        WORDS.put("array",SymbolType.ARRAY);
+        WORDS.put("ARRAY",SymbolType.ARRAY);
 
         //for types
 
@@ -67,20 +67,82 @@ public class Lexer {
 
     }
 
-    public Lexer(Reader input) {
-        this.input=input;
+    public Lexer(Reader sourceFile) {
+        this.sourceFile=sourceFile;
         try{
             nextRead();
         }catch(IOException e){
-            throw new RuntimeException("LexerError: not input");
+            throw new RuntimeException("LexerError: not input given");
         }
 
     }
     private void nextRead() throws IOException{
-            currentChar=input.read();
+            currentChar=sourceFile.read();
     }
 
-    private void skipComOrSpace (){
+    private void skipComOrSpace() throws IOException {
+        while(currentChar!=-1){
+            if(Character.isWhitespace(currentChar)){
+                nextRead();
+            }
+            else if(currentChar=='#'){
+                while (currentChar!=-1 && currentChar!='\n'){
+                    nextRead();
+                }
+            }else{
+                break;
+            }
+        }
+    }
+
+    private Symbol getWord() throws IOException{
+        StringBuilder sb=new StringBuilder();
+        while(Character.isLetterOrDigit(currentChar)||currentChar=='_'){
+            sb.append((char) currentChar);
+            nextRead();
+        }
+
+        String word=sb.toString();
+        SymbolType symbolType=WORDS.get(word);
+
+        if(symbolType==null){
+            return  new Symbol(SymbolType.IDENTIFIER,word);
+
+        }
+        else if(symbolType==SymbolType.BOOL_LITERAL){
+            return new Symbol(SymbolType.BOOL_LITERAL,(word));
+        }
+        return new Symbol(symbolType,null);
+
+    }
+
+
+    private Symbol getNumber() throws IOException{
+        StringBuilder sb=new StringBuilder();
+        boolean isFloat=false;
+        while(currentChar!=-1 && Character.isDigit(currentChar)){
+            sb.append((char) currentChar);
+            nextRead();
+        }
+        if(currentChar=='.') {
+            isFloat = true;
+            sb.append((char) currentChar);
+            nextRead();
+
+            if (currentChar == -1 || !Character.isDigit(currentChar)) {
+                throw new RuntimeException("LexicalError :the float is malformed");
+            }
+            while (currentChar != -1 && Character.isDigit(currentChar)) {
+                sb.append((char) currentChar);
+                nextRead();
+            }
+        }
+            String number=sb.toString();
+            if(isFloat){
+                return new Symbol(SymbolType.FLOAT_LITERAL,number);
+            }
+            return new Symbol(SymbolType.INT_LITERAL,number);
+
     }
     
     public Symbol getNextSymbol() {
