@@ -1,69 +1,71 @@
 package compiler.Lexer;
 import java.io.IOException;
 import java.io.Reader;
+import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Lexer {
     private final Reader sourceFile;
     private int currentChar;
-    private static final Map<String, SymbolType> WORDS =new HashMap<>();
-    private static final Map<String, SymbolType> OPERATORS =new HashMap<>();
-    private static final Map<Character, SymbolType> SPECIALS_CHARACTER =new HashMap<>();
+    private static final Map<String, Token> WORDS =new HashMap<>();
+    private static final Map<String, Token> OPERATORS =new HashMap<>();
+    private static final Map<Character, Token> SPECIALS_CHARACTER =new HashMap<>();
 
 
     static {
         //for keywords
-        WORDS.put("final",SymbolType.FINAL);
-        WORDS.put("coll",SymbolType.COLL);
-        WORDS.put("for",SymbolType.FOR);
-        WORDS.put("while",SymbolType.WHILE);
-        WORDS.put("if",SymbolType.IF);
-        WORDS.put("else",SymbolType.ELSE);
-        WORDS.put("return",SymbolType.RETURN);
-        WORDS.put("not",SymbolType.NOT);
-        WORDS.put("ARRAY",SymbolType.ARRAY);
+        WORDS.put("final", Token.FINAL);
+        WORDS.put("coll", Token.COLL);
+        WORDS.put("for", Token.FOR);
+        WORDS.put("while", Token.WHILE);
+        WORDS.put("if", Token.IF);
+        WORDS.put("else", Token.ELSE);
+        WORDS.put("return", Token.RETURN);
+        WORDS.put("not", Token.NOT);
+        WORDS.put("def", Token.DEF);
+        WORDS.put("ARRAY", Token.ARRAY);
 
         //for types
 
-        WORDS.put("INT",SymbolType.INT_TYPE);
-        WORDS.put("FLOAT",SymbolType.FLOAT_TYPE);
-        WORDS.put("BOOL",SymbolType.BOOL_TYPE);
-        WORDS.put("STRING",SymbolType.STRING_TYPE);
+        WORDS.put("INT", Token.INT_TYPE);
+        WORDS.put("FLOAT", Token.FLOAT_TYPE);
+        WORDS.put("BOOL", Token.BOOL_TYPE);
+        WORDS.put("STRING", Token.STRING_TYPE);
 
         //for boolean literals
-        WORDS.put("true",SymbolType.BOOL_LITERAL);
-        WORDS.put("false",SymbolType.BOOL_LITERAL);
+        WORDS.put("true", Token.BOOL_LITERAL);
+        WORDS.put("false", Token.BOOL_LITERAL);
 
         //for operators
 
-        OPERATORS.put("+",SymbolType.PLUS);
-        OPERATORS.put("-",SymbolType.MINUS);
-        OPERATORS.put("*",SymbolType.MULTIPLY);
-        OPERATORS.put("/",SymbolType.DIVIDE);
-        OPERATORS.put("%",SymbolType.MODULO);
-        OPERATORS.put("=",SymbolType.ASSIGN);
-        OPERATORS.put("==",SymbolType.EQUAL);
-        OPERATORS.put("=/=",SymbolType.NOT_EQUAL);
-        OPERATORS.put("<",SymbolType.LESS);
-        OPERATORS.put("<=",SymbolType.LESS_EQUAL);
-        OPERATORS.put(">",SymbolType.GREATER);
-        OPERATORS.put(">=",SymbolType.GREATER_EQUAL);
-        OPERATORS.put("&&",SymbolType.AND);
-        OPERATORS.put("||",SymbolType.OR);
-        OPERATORS.put("->",SymbolType.ARROW);
+        OPERATORS.put("+", Token.PLUS);
+        OPERATORS.put("-", Token.MINUS);
+        OPERATORS.put("*", Token.MULTIPLY);
+        OPERATORS.put("/", Token.DIVIDE);
+        OPERATORS.put("%", Token.MODULO);
+        OPERATORS.put("=", Token.ASSIGN);
+        OPERATORS.put("==", Token.EQUAL);
+        OPERATORS.put("=/=", Token.NOT_EQUAL);
+        OPERATORS.put("<", Token.LESS);
+        OPERATORS.put("<=", Token.LESS_EQUAL);
+        OPERATORS.put(">", Token.GREATER);
+        OPERATORS.put(">=", Token.GREATER_EQUAL);
+        OPERATORS.put("&&", Token.AND);
+        OPERATORS.put("||", Token.OR);
+        OPERATORS.put("->", Token.ARROW);
 
         //for special charactar
 
-        SPECIALS_CHARACTER.put('(',SymbolType.LEFT_PAREN);
-        SPECIALS_CHARACTER.put(')',SymbolType.RIGHT_PAREN);
-        SPECIALS_CHARACTER.put('{',SymbolType.LEFT_BRACE);
-        SPECIALS_CHARACTER.put('}',SymbolType.RIGHT_BRACE);
-        SPECIALS_CHARACTER.put('[',SymbolType.LEFT_BRACKET);
-        SPECIALS_CHARACTER.put(']',SymbolType.RIGHT_BRACKET);
-        SPECIALS_CHARACTER.put(',',SymbolType.COMMA);
-        SPECIALS_CHARACTER.put(';',SymbolType.SEMILCOLON);
-        SPECIALS_CHARACTER.put('.',SymbolType.DOT);
+        SPECIALS_CHARACTER.put('(', Token.LEFT_PAREN);
+        SPECIALS_CHARACTER.put(')', Token.RIGHT_PAREN);
+        SPECIALS_CHARACTER.put('{', Token.LEFT_BRACE);
+        SPECIALS_CHARACTER.put('}', Token.RIGHT_BRACE);
+        SPECIALS_CHARACTER.put('[', Token.LEFT_BRACKET);
+        SPECIALS_CHARACTER.put(']', Token.RIGHT_BRACKET);
+        SPECIALS_CHARACTER.put(',', Token.COMMA);
+        SPECIALS_CHARACTER.put(';', Token.SEMILCOLON);
+        SPECIALS_CHARACTER.put('.', Token.DOT);
 
     }
 
@@ -102,17 +104,16 @@ public class Lexer {
             nextRead();
         }
 
-        String word=sb.toString();
-        SymbolType symbolType=WORDS.get(word);
+        Token token=WORDS.get(sb.toString());
 
-        if(symbolType==null){
-            return  new Symbol(SymbolType.IDENTIFIER,word);
+        if(token==null){
+            return  new Symbol(Token.IDENTIFIER,sb.toString());
 
         }
-        else if(symbolType==SymbolType.BOOL_LITERAL){
-            return new Symbol(SymbolType.BOOL_LITERAL,(word));
+        else if(token== Token.BOOL_LITERAL){
+            return new Symbol(Token.BOOL_LITERAL,Boolean.parseBoolean(sb.toString()));
         }
-        return new Symbol(symbolType,null);
+        return new Symbol(token,null);
 
     }
 
@@ -137,12 +138,61 @@ public class Lexer {
                 nextRead();
             }
         }
-            String number=sb.toString();
             if(isFloat){
-                return new Symbol(SymbolType.FLOAT_LITERAL,number);
+                return new Symbol(Token.FLOAT_LITERAL,Double.parseDouble(sb.toString()));
             }
-            return new Symbol(SymbolType.INT_LITERAL,number);
+            return new Symbol(Token.INT_LITERAL,Integer.parseInt(sb.toString()));
 
+    }
+
+    private Symbol getString() throws IOException{
+        nextRead();
+        StringBuilder sb=new StringBuilder();
+        while(currentChar !=-1 && currentChar!='"'){
+            if(currentChar=='\\'){
+                nextRead();
+                if(currentChar==-1){
+                    throw  new RuntimeException("LexicalError: the string is malformed");
+                }
+                switch(currentChar){
+                    case 'n':sb.append('\n');break;
+                    case '\\':sb.append('\\');break;
+                    case '"':sb.append('"');break;
+                    default:throw new RuntimeException("LexicalError:problem with escape character");
+                }
+                nextRead();
+            }else{
+                sb.append((char)currentChar);
+                nextRead();
+            }
+        }
+        if(currentChar !='"'){
+            throw new RuntimeException("LexicalError:string unterminated");
+        }
+        nextRead();
+        return new Symbol(Token.STRING_LITERAL,sb.toString());
+
+    }
+
+    private Symbol getSpecial() throws IOException{
+        Token type=SPECIALS_CHARACTER.get((char)currentChar);
+        if(type==null) return null;
+        nextRead();
+        return new Symbol(type,null);
+    }
+
+    private Symbol getOperator() throws IOException{
+        switch(currentChar){
+            case '=':
+            case '<':
+            case '>':
+            case '|':
+            case '&':
+
+
+
+
+        }
     }
     
     public Symbol getNextSymbol() {

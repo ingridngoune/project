@@ -1,6 +1,6 @@
 package compiler.Lexer;
 
-public enum SymbolType {
+public enum Token {
 
     //Webographie
     //https://medium.com/@enzojade62/step-by-step-building-a-lexer-in-java-for-tokenizing-source-code-ac4f1d91326f

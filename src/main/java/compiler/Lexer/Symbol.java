@@ -1,29 +1,29 @@
 package compiler.Lexer;
 
 public class Symbol {
-    private final SymbolType type;
-    private final String value;
+    private final Token type;
+    private final Object attribute;
 
-    public Symbol(SymbolType type,String value){
+    public Symbol(Token type, Object attribute){
         this.type=type;
-        this.value=value;
+        this.attribute=attribute;
     }
 
-    public SymbolType getType() {
+    public Token getType() {
         return type;
     }
 
-    public String getValue() {
-        return value;
+    public Object getValue() {
+        return attribute;
     }
 
     @Override
     public String toString() {
-        if(value==null) {
+        if(attribute==null) {
             return "<" + type + ">";
         }
         return "<" + type +
-                "," + value +
+                "," + attribute +
                 ">";
     }
 }
