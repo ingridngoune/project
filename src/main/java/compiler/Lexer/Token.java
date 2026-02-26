@@ -2,9 +2,6 @@ package compiler.Lexer;
 
 public enum Token {
 
-    //Webographie
-    //https://medium.com/@enzojade62/step-by-step-building-a-lexer-in-java-for-tokenizing-source-code-ac4f1d91326f
-    //https://docs.oracle.com/javase/specs/jls/se7/html/jls-3.html
 
     //list of keywords
     FINAL,
@@ -17,6 +14,7 @@ public enum Token {
     NOT,
     ARRAY,
     DEF,
+    COLLECTION_IDENTIFIER,
 
     //list of types
     INT_TYPE,

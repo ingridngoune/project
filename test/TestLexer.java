@@ -1,11 +1,14 @@
 import static org.junit.Assert.assertNotNull;
+
+import compiler.Lexer.Symbol;
+import compiler.Lexer.Token;
 import org.junit.Test;
 
 import java.io.StringReader;
 import compiler.Lexer.Lexer;
 
 public class TestLexer {
-    
+
     @Test
     public void test() {
         String input = "var x int = 2;";
@@ -13,5 +16,6 @@ public class TestLexer {
         Lexer lexer = new Lexer(reader);
         assertNotNull(lexer.getNextSymbol());
     }
+
 
 }

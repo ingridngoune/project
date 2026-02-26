@@ -3,8 +3,33 @@
  */
 package compiler;
 
+import compiler.Lexer.Lexer;
+import compiler.Lexer.Symbol;
+import compiler.Lexer.Token;
+
+import java.io.FileReader;
+import java.io.IOException;
+
 public class Compiler {
-    public static void main(String[] args) {
-        System.out.println("Hello from the compiler !");
+    public static void main(String[] args) throws Exception {
+
+        if (args.length != 2) {
+            System.err.println("Incorrect Number of args ");
+            System.exit(1);
+        }
+
+        try (FileReader reader = new FileReader(args[1])) {
+            Lexer lexer = new Lexer(reader);
+            Symbol symbol;
+
+            do {
+                symbol = lexer.getNextSymbol();
+                System.out.println(symbol);
+            } while (symbol.getType() != Token.EOF);
+
+        } catch (IOException e) {
+            System.err.println("Cannot read input file");
+        }
+
     }
 }
