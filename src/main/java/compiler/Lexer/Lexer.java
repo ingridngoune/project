@@ -13,6 +13,7 @@ import java.util.Map;
 
 public class Lexer {
     private final Reader sourceFile;
+    //current char being read (-1 for EOF)
     private int currentChar;
     private static final Map<String, Token> KEYWORDS =new HashMap<>();
     private static final Map<String, Token> OPERATORS =new HashMap<>();
@@ -87,10 +88,12 @@ public class Lexer {
         }
 
     }
+    //read the next charactere from the input
     private void nextRead() throws IOException{
             currentChar=sourceFile.read();
     }
 
+    // skip whitespace, comment and line breaks
     private void skipComOrSpace() throws IOException {
         while(currentChar!=-1){
             if(currentChar==' ' || currentChar =='\t' || currentChar =='\n' || currentChar=='\r'){
@@ -108,6 +111,8 @@ public class Lexer {
 
     private Symbol getWord() throws IOException{
         StringBuilder sb=new StringBuilder();
+
+        // ascii character
         while((currentChar>='a' && currentChar <='z')||
                 (currentChar >='A' && currentChar<='Z')||
                 (currentChar>='0' && currentChar <='9') ||
@@ -116,6 +121,7 @@ public class Lexer {
             nextRead();
         }
         String word=sb.toString();
+        // priority : type > keyword> Bolean> Identifier
         if(TYPES.containsKey(word)){
             return new Symbol(TYPES.get(word),null);
         }
@@ -126,6 +132,8 @@ public class Lexer {
             return new Symbol(Token.BOOL_LITERAL,Boolean.parseBoolean(word));
         }
         char c=word.charAt(0);
+
+        //identifiers starting with uppercase are collection identifiers
         if(Character.isUpperCase(c)) {
             return new Symbol(Token.COLLECTION_IDENTIFIER,word);
         }
@@ -150,11 +158,13 @@ public class Lexer {
             return new Symbol(Token.FLOAT_LITERAL,Double.parseDouble(sb.toString()));
         }
 
-        //case of 452 or 145.235
+        // for integer
         while(currentChar!=-1 && Character.isDigit(currentChar)){
             sb.append((char) currentChar);
             nextRead();
         }
+
+        //for decimal
         if(currentChar=='.') {
             isFloat = true;
             sb.append((char) currentChar);
@@ -176,9 +186,13 @@ public class Lexer {
     }
 
     private Symbol getString() throws IOException{
-        nextRead();
+        nextRead(); //skip opening quote
         StringBuilder sb=new StringBuilder();
+
         while(currentChar !=-1 && currentChar!='"'){
+            if (!isAsciiChar(currentChar)) {
+                throw new RuntimeException("lexicalError: non ascii character inside string literal");
+            }
             if(currentChar=='\\'){
                 nextRead();
                 if(currentChar==-1){
@@ -193,7 +207,7 @@ public class Lexer {
                 nextRead();
             }else{
                 sb.append((char)currentChar);
-                nextRead();
+                nextRead(); //closing quote
             }
         }
         if(currentChar !='"'){
@@ -204,6 +218,7 @@ public class Lexer {
 
     }
 
+    //for bracket,  comma, semicolon..
     private Symbol getSpecial() throws IOException{
         Token type=SPECIALS_CHARACTER.get((char)currentChar);
         if(type==null) return null;
@@ -211,6 +226,7 @@ public class Lexer {
         return new Symbol(type,null);
     }
 
+    //for 1 char operator,2 char operator, and 3 char operator
     private Symbol getOperator() throws IOException{
         switch(currentChar){
             case '+':
@@ -225,6 +241,8 @@ public class Lexer {
             case '&':{
                 char c1=(char) currentChar;
                 nextRead();
+
+                // if the special is =/=
                 if(c1=='=' && currentChar=='/'){
                     nextRead();
                     if(currentChar=='='){
@@ -234,6 +252,8 @@ public class Lexer {
                     throw new RuntimeException("LexicalError : malformed operator '=/='");
 
                 }
+
+                // for two charactere operator
                 if(currentChar!=-1){
                     String c2=""+c1+(char)currentChar;
                     Token type2=OPERATORS.get(c2);
@@ -243,6 +263,7 @@ public class Lexer {
                     }
                 }
 
+                // for one character operator
                 Token type1=OPERATORS.get(String.valueOf(c1));
                 if(type1!=null){
                     return new Symbol(type1,null);
@@ -257,16 +278,21 @@ public class Lexer {
         }
     }
 
-    private boolean isAscciChar(int c){
+    // ensure that the charactere is a printable ascii charactere.
+    private boolean isAsciiChar(int c){
         return (c=='\n') || (c=='\t') ||(c=='\r') ||(c>=32 && c<=126);
     }
+
+
+
+    //return the nex token from the input
     public Symbol getNextSymbol() {
         try{
             skipComOrSpace();
             if(currentChar==-1){
                 return new Symbol(Token.EOF,null);
             }
-            if(!isAscciChar(currentChar)){throw new RuntimeException("LexicalError : unknwon printable ascii character"+currentChar);
+            if(!isAsciiChar(currentChar)){throw new RuntimeException("LexicalError : unknwon printable ascii character"+currentChar);
             }
             if((currentChar>='a' && currentChar <='z')||
                     (currentChar >='A' && currentChar<='Z')|| currentChar=='_'){
