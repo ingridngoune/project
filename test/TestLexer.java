@@ -96,7 +96,7 @@ public class TestLexer {
 
     // Whitespace tes
     @Test
-    public void testWhitespaceEquivalence() {
+    public void testWhitespaceEq() {
 
         Lexer l1 = new Lexer(new StringReader("INT x = 2;"));
         Lexer l2 = new Lexer(new StringReader("INT   x=2;"));
