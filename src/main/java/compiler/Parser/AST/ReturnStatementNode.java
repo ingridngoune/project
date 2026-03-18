@@ -2,13 +2,13 @@ package compiler.Parser.AST;
 
 public class ReturnStatementNode extends Statement {
 
-    private final Expression expression;
+    private final ExpressionNode expression;
 
-    public ReturnStatementNode(Expression expression) {
+    public ReturnStatementNode(ExpressionNode expression) {
         this.expression = expression;
     }
 
-    public Expression getExpression() {
+    public ExpressionNode getExpression() {
         return expression;
     }
 }

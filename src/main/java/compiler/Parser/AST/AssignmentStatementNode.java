@@ -2,19 +2,19 @@ package compiler.Parser.AST;
 
 public class AssignmentStatementNode extends Statement {
 
-    private final Expression target;
-    private final Expression value;
+    private final ExpressionNode target;
+    private final ExpressionNode value;
 
-    public AssignmentStatementNode(Expression target, Expression value) {
+    public AssignmentStatementNode(ExpressionNode target, ExpressionNode value) {
         this.target = target;
         this.value = value;
     }
 
-    public Expression getTarget() {
+    public ExpressionNode getTarget() {
         return target;
     }
 
-    public Expression getValue() {
+    public ExpressionNode getValue() {
         return value;
     }
 }

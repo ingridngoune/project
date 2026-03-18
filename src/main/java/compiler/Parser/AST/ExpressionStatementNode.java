@@ -3,13 +3,13 @@ package compiler.Parser.AST;
 
 public class ExpressionStatementNode extends Statement {
 
-    private final Expression expression;
+    private final ExpressionNode expression;
 
-    public ExpressionStatementNode(Expression expression) {
+    public ExpressionStatementNode(ExpressionNode expression) {
         this.expression = expression;
     }
 
-    public Expression getExpression() {
+    public ExpressionNode getExpression() {
         return expression;
     }
 }

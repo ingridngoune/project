@@ -1,16 +1,16 @@
 package compiler.Parser.AST;
 
-public class FieldAccessNode extends Expression {
+public class FieldAccessNode extends ExpressionNode {
 
-    private final Expression target;
+    private final ExpressionNode target;
     private final String fieldName;
 
-    public FieldAccessNode(Expression target, String fieldName) {
+    public FieldAccessNode(ExpressionNode target, String fieldName) {
         this.target = target;
         this.fieldName = fieldName;
     }
 
-    public Expression getTarget() {
+    public ExpressionNode getTarget() {
         return target;
     }
 

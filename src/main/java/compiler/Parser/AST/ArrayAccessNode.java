@@ -1,20 +1,20 @@
 package compiler.Parser.AST;
 
-public class ArrayAccessNode extends Expression {
+public class ArrayAccessNode extends ExpressionNode {
 
-    private final Expression array;
-    private final Expression index;
+    private final ExpressionNode array;
+    private final ExpressionNode index;
 
-    public ArrayAccessNode(Expression array, Expression index) {
+    public ArrayAccessNode(ExpressionNode array, ExpressionNode index) {
         this.array = array;
         this.index = index;
     }
 
-    public Expression getArray() {
+    public ExpressionNode getArray() {
         return array;
     }
 
-    public Expression getIndex() {
+    public ExpressionNode getIndex() {
         return index;
     }
 }

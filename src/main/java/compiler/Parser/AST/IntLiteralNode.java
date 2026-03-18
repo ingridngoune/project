@@ -1,6 +1,6 @@
 package compiler.Parser.AST;
 
-public class IntLiteralNode extends Expression {
+public class IntLiteralNode extends ExpressionNode {
 
     private final int value;
 

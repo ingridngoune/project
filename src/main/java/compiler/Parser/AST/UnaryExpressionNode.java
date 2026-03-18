@@ -1,11 +1,11 @@
 package compiler.Parser.AST;
 
-public class UnaryExpressionNode extends Expression {
+public class UnaryExpressionNode extends ExpressionNode {
 
     private final String operator;
-    private final Expression expression;
+    private final ExpressionNode expression;
 
-    public UnaryExpressionNode(String operator, Expression expression) {
+    public UnaryExpressionNode(String operator, ExpressionNode expression) {
         this.operator = operator;
         this.expression = expression;
     }
@@ -14,7 +14,7 @@ public class UnaryExpressionNode extends Expression {
         return operator;
     }
 
-    public Expression getExpression() {
+    public ExpressionNode getExpression() {
         return expression;
     }
 }

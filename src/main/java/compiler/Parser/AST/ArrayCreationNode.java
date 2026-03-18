@@ -1,11 +1,11 @@
 package compiler.Parser.AST;
 
-public class ArrayCreationNode extends Expression {
+public class ArrayCreationNode extends ExpressionNode {
 
     private final TypeNode elementType;
-    private final Expression size;
+    private final ExpressionNode size;
 
-    public ArrayCreationNode(TypeNode elementType, Expression size) {
+    public ArrayCreationNode(TypeNode elementType, ExpressionNode size) {
         this.elementType = elementType;
         this.size = size;
     }
@@ -14,7 +14,7 @@ public class ArrayCreationNode extends Expression {
         return elementType;
     }
 
-    public Expression getSize() {
+    public ExpressionNode getSize() {
         return size;
     }
 }

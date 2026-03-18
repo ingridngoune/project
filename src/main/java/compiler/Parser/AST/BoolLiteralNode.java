@@ -1,6 +1,6 @@
 package compiler.Parser.AST;
 
-public class BoolLiteralNode extends Expression {
+public class BoolLiteralNode extends ExpressionNode {
 
     private final boolean value;
 

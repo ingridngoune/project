@@ -5,12 +5,12 @@ public class ForStatementNode extends Statement {
 
     private final TypeNode variableType;
     private final String variableName;
-    private final Expression startValue;
-    private final Expression endValue;
-    private final Expression stepValue;
+    private final ExpressionNode startValue;
+    private final ExpressionNode endValue;
+    private final ExpressionNode stepValue;
     private final BlockNode body;
 
-    public ForStatementNode(TypeNode variableType, String variableName, Expression startValue, Expression endValue, Expression stepValue, BlockNode body) {
+    public ForStatementNode(TypeNode variableType, String variableName, ExpressionNode startValue, ExpressionNode endValue, ExpressionNode stepValue, BlockNode body) {
         this.variableType = variableType;
         this.variableName = variableName;
         this.startValue = startValue;
@@ -27,15 +27,15 @@ public class ForStatementNode extends Statement {
         return variableName;
     }
 
-    public Expression getStartValue() {
+    public ExpressionNode getStartValue() {
         return startValue;
     }
 
-    public Expression getEndValue() {
+    public ExpressionNode getEndValue() {
         return endValue;
     }
 
-    public Expression getStepValue() {
+    public ExpressionNode getStepValue() {
         return stepValue;
     }
 

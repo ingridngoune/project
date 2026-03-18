@@ -2,15 +2,15 @@ package compiler.Parser.AST;
 
 public class WhileStatementNode extends Statement {
 
-    private final Expression condition;
+    private final ExpressionNode condition;
     private final BlockNode body;
 
-    public WhileStatementNode(Expression condition, BlockNode body) {
+    public WhileStatementNode(ExpressionNode condition, BlockNode body) {
         this.condition = condition;
         this.body = body;
     }
 
-    public Expression getCondition() {
+    public ExpressionNode getCondition() {
         return condition;
     }
 

@@ -1,6 +1,6 @@
 package compiler.Parser.AST;
 
-public class FloatLiteralNode extends Expression {
+public class FloatLiteralNode extends ExpressionNode {
 
     private final float value;
 

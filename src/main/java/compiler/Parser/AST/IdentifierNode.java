@@ -1,6 +1,6 @@
 package compiler.Parser.AST;
 
-public class IdentifierNode extends Expression {
+public class IdentifierNode extends ExpressionNode {
 
     private final String name;
 
