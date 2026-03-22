@@ -1,7 +1,7 @@
 package compiler.Parser.AST;
 
 
-public class ForStatementNode extends Statement {
+public class ForStatementNode extends StatementNode {
 
     private final TypeNode variableType;
     private final String variableName;

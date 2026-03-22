@@ -1,4 +1,4 @@
 package compiler.Parser.AST;
 
-public abstract class Statement extends ASTNode {
+public abstract class StatementNode extends ASTNode {
 }

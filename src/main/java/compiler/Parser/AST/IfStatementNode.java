@@ -1,7 +1,7 @@
 package compiler.Parser.AST;
 
 
-public class IfStatementNode extends Statement {
+public class IfStatementNode extends StatementNode {
 
     private final ExpressionNode condition;
     private final BlockNode thenBlock;

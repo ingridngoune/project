@@ -2,14 +2,14 @@ package compiler.Parser.AST;
 
 import java.util.List;
 
-public class BlockNode extends Statement{
-    private final List<Statement> statements;
+public class BlockNode extends StatementNode {
+    private final List<StatementNode> statements;
 
-    public BlockNode(List<Statement> statements) {
+    public BlockNode(List<StatementNode> statements) {
         this.statements = statements;
     }
 
-    public List<Statement> getStatements() {
+    public List<StatementNode> getStatements() {
         return statements;
     }
 }

@@ -1,6 +1,6 @@
 package compiler.Parser.AST;
 
-public class AssignmentStatementNode extends Statement {
+public class AssignmentStatementNode extends StatementNode {
 
     private final ExpressionNode target;
     private final ExpressionNode value;

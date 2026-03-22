@@ -41,6 +41,13 @@ public class Parser {
         return token == Token.INT_TYPE || token == Token.FLOAT_TYPE || token == Token.BOOL_TYPE || token == Token.STRING_TYPE || token == Token.COLLECTION_IDENTIFIER;
     }
 
+    private boolean isStatementStart(Token token) {
+        return isTypeStart(token)  || token == Token.IDENTIFIER  || token == Token.LEFT_BRACE  || token == Token.IF  || token == Token.WHILE  || token == Token.FOR  || token == Token.RETURN;
+    }
+
+    private boolean isExpressionStart(Token token) {
+        return token == Token.INT_LITERAL || token == Token.FLOAT_LITERAL || token == Token.STRING_LITERAL || token == Token.BOOL_LITERAL || token == Token.IDENTIFIER || token == Token.COLLECTION_IDENTIFIER || token == Token.LEFT_PAREN;
+    }
     public ProgramNode getAST() {
         nextSymbol();
         return parseProgram();
@@ -82,7 +89,7 @@ public class Parser {
     //-----------parse collection declaration---------------
     private List<CollectionDeclarationNode> parseCollectionDeclarations() {
         List<CollectionDeclarationNode> collectionDeclarations = new ArrayList<>();
-        while (current.getType() == Token.COLL) {
+        while (current.getType()==Token.COLL) {
             collectionDeclarations.add(parseCollectionDeclaration());
         }
         return collectionDeclarations;
@@ -118,11 +125,9 @@ public class Parser {
     //-------parse variable declaration-----------
     private List<VariableDeclarationNode> parseGlobalVariableDeclarations() {
         List<VariableDeclarationNode> globalVariables = new ArrayList<>();
-
         while (isTypeStart(current.getType())) {
             globalVariables.add(parseVariableDeclaration());
         }
-
         return globalVariables;
     }
 
@@ -193,30 +198,46 @@ public class Parser {
 
     private FunctionDeclarationNode parseFunctionDeclaration() {
         consume(Token.DEF);
-        TypeNode returnType = null;
-        String name;
-        // cas de  fonction sans type de retour
-        if (current.getType() == Token.IDENTIFIER) {
-            name = (String) current.getValue();
-            consume(Token.IDENTIFIER);
-        }
-        // cas fonction avec type de retour
-        else {
-            returnType = parseType();
-            name = (String) current.getValue();
-            consume(Token.IDENTIFIER);
-        }
+        TypeNode returnType = parseOptionalReturn();
+        String name = (String) current.getValue();
+        consume(Token.IDENTIFIER);
         consume(Token.LEFT_PAREN);
-        List<ParameterNode> parameters = parseOptionalParameters();
+        List<ParameterNode> parameters = parseOptionalParameterList();
         consume(Token.RIGHT_PAREN);
         BlockNode body = parseBlock();
         return new FunctionDeclarationNode(returnType, name, parameters, body);
     }
 
-    private List<ParameterNode> parseOptionalParameters() {
-        return null;
+    private List<ParameterNode> parseOptionalParameterList() {
+        if (isTypeStart(current.getType())) {
+            return parseParameterList();
+        }
+        return new ArrayList<>();
     }
 
+    private List<ParameterNode> parseParameterList() {
+        List<ParameterNode> parameters = new ArrayList<>();
+        parameters.add(parseParameter());
+        while (checkAndConsume(Token.COMMA)) {
+            parameters.add(parseParameter());
+        }
+        return parameters;
+    }
+
+    private ParameterNode parseParameter() {
+        TypeNode type = parseType();
+        String name = (String) current.getValue();
+        consume(Token.IDENTIFIER);
+        return new ParameterNode(type, name);
+    }
+
+    private TypeNode parseOptionalReturn() {
+        if (isTypeStart(current.getType())) {
+            return parseType();
+        }
+        return null;
+    }
+    
 
     //------------parse type-----------
     private TypeNode parseType() {
@@ -237,7 +258,7 @@ public class Parser {
             name = (String) current.getValue();
             consume(Token.COLLECTION_IDENTIFIER);
         } else {
-            throw new RuntimeException("syntx error, expected a type but found " + current.getType());
+            throw new RuntimeException("syntx error  expected a type but found " + current.getType());
         }
         boolean isArray = false;
         if (checkAndConsume(Token.LEFT_BRACKET)) {
@@ -269,17 +290,115 @@ public class Parser {
 
     }
 
-
     //--------------parse statements-------------
 
-
     private BlockNode parseBlock() {
+        consume(Token.LEFT_BRACE);
+        List<StatementNode> statements = parseStatementList();
+        consume(Token.RIGHT_BRACE);
+        return new BlockNode(statements);
+    }
+
+    private List<StatementNode> parseStatementList() {
+        List<StatementNode> statements = new ArrayList<>();
+        while (isStatementStart(current.getType())) {
+            statements.add(parseStatement());
+        }
+        return statements;
+    }
+
+    private StatementNode parseStatement() {
+        Token token = current.getType();
+        if (isTypeStart(token)) {
+            return parseVariableDeclaration();
+        }
+        if (token == Token.LEFT_BRACE) {
+            return parseBlock();
+        }
+        if (token == Token.RETURN) {
+            return parseReturnStatement();
+        }
+        if (token == Token.IF) {
+            return parseIfStatement();
+        }
+        if (token == Token.WHILE) {
+            return parseWhileStatement();
+        }
+        if (token == Token.FOR) {
+            return parseForStatement();
+        }
+        if (token == Token.IDENTIFIER) {
+            return parseAssignmentOrExpressionStatement();
+        }
+        throw new RuntimeException(
+                "Syntax error expected a statement but found " + current.getType()
+        );
+    }
+
+    private StatementNode parseAssignmentOrExpressionStatement() {
+        ExpressionNode left = parseAccessExpression();
+        if (checkAndConsume(Token.ASSIGN)) {
+            ExpressionNode value = parseInitializer();
+            consume(Token.SEMILCOLON);
+            return new AssignmentStatementNode(left, value);
+        }
+        consume(Token.SEMILCOLON);
+        return new ExpressionStatementNode(left);
+    }
+
+    private ExpressionNode parseAccessExpression() {
         return null;
     }
 
+    private StatementNode parseForStatement() {
+        consume(Token.FOR);
+        consume(Token.LEFT_PAREN);
+        TypeNode variableType = parseType();
+        String variableName = (String) current.getValue();
+        consume(Token.IDENTIFIER);
+        consume(Token.SEMILCOLON);
+        ExpressionNode startExpression = parseExpression();
+        consume(Token.ARROW);
+        ExpressionNode endExpression = parseExpression();
+        consume(Token.SEMILCOLON);
+        ExpressionNode stepExpression = parseExpression();
+        consume(Token.RIGHT_PAREN);
+        BlockNode body = parseBlock();
+        return new ForStatementNode(variableType, variableName, startExpression, endExpression, stepExpression, body);
+    }
 
+    private StatementNode parseWhileStatement() {
+        consume(Token.WHILE);
+        consume(Token.LEFT_PAREN);
+        ExpressionNode condition = parseExpression();
+        consume(Token.RIGHT_PAREN);
+        BlockNode body = parseBlock();
+        return new WhileStatementNode(condition, body);
+    }
 
+    private StatementNode parseIfStatement() {
+        consume(Token.IF);
+        consume(Token.LEFT_PAREN);
+        ExpressionNode condition = parseExpression();
+        consume(Token.RIGHT_PAREN);
+        BlockNode thenBlock = parseBlock();
+        BlockNode elseBlock = null;
+        if (checkAndConsume(Token.ELSE)) {
+            elseBlock = parseBlock();
+        }
+        return new IfStatementNode(condition, thenBlock, elseBlock);
+    }
 
+    private StatementNode parseReturnStatement() {
+        consume(Token.RETURN);
+        ExpressionNode value = null;
+        if (isExpressionStart(current.getType())) {
+            value = parseExpression();
+        }
+        consume(Token.SEMILCOLON);
+        return new ReturnStatementNode(value);
+
+    }
 
     //----------------parse expression-----------------------
     private ExpressionNode parseExpression() {

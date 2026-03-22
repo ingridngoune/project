@@ -1,6 +1,6 @@
 package compiler.Parser.AST;
 
-public class VariableDeclarationNode extends Declaration{
+public class VariableDeclarationNode extends StatementNode{
     private final TypeNode type;
     private final String name;
     private final ExpressionNode initValue;
@@ -10,11 +10,9 @@ public class VariableDeclarationNode extends Declaration{
         this.name = name;
         this.initValue = initValue;
     }
-
     public TypeNode getType() {
         return type;
     }
-
     public String getName() {
         return name;
     }
