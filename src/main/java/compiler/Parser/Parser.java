@@ -63,12 +63,33 @@ public class Parser {
 
     //-----------------parse program-----------------------
     private ProgramNode parseProgram() {
-        List<ConstantDeclarationNode> constantDeclarations = parseConstantDeclarations();
-        List<CollectionDeclarationNode> collectionDeclarations = parseCollectionDeclarations();
-        List<VariableDeclarationNode> globalVariableDeclarations = parseGlobalVariableDeclarations();
-        List<FunctionDeclarationNode> functionDeclarations = parseFunctionDeclarations();
+        List<ConstantDeclarationNode> constantDeclarations = new ArrayList<>();
+        List<CollectionDeclarationNode> collectionDeclarations = new ArrayList<>();
+        List<VariableDeclarationNode> globalVariableDeclarations = new ArrayList<>();
+        List<FunctionDeclarationNode> functionDeclarations = new ArrayList<>();
+        while (current.getType() != Token.EOF) {
+            if (current.getType() == Token.FINAL) {
+                constantDeclarations.add(parseConstantDeclaration());
+            } else if (current.getType() == Token.COLL) {
+                collectionDeclarations.add(parseCollectionDeclaration());
+            } else if (current.getType() == Token.DEF) {
+                functionDeclarations.add(parseFunctionDeclaration());
+            } else if (isTypeStart(current.getType())) {
+                globalVariableDeclarations.add(parseVariableDeclaration());
+            } else {
+                throw new RuntimeException(
+                        "syntax error: unexpected token at top level: " + current.getType()
+                );
+            }
+        }
+
         consume(Token.EOF);
-        return new ProgramNode(constantDeclarations, collectionDeclarations, globalVariableDeclarations, functionDeclarations);
+        return new ProgramNode(
+                constantDeclarations,
+                collectionDeclarations,
+                globalVariableDeclarations,
+                functionDeclarations
+        );
     }
 
     //--------------------parse constants declarations ---------------
@@ -355,7 +376,7 @@ public class Parser {
     private StatementNode parseForStatement() {
         consume(Token.FOR);
         consume(Token.LEFT_PAREN);
-        TypeNode variableType = parseType();
+        //TypeNode variableType = parseType();
         String variableName = (String) current.getValue();
         consume(Token.IDENTIFIER);
         consume(Token.SEMILCOLON);
@@ -366,7 +387,7 @@ public class Parser {
         ExpressionNode stepExpression = parseExpression();
         consume(Token.RIGHT_PAREN);
         BlockNode body = parseBlock();
-        return new ForStatementNode(variableType, variableName, startExpression, endExpression, stepExpression, body);
+        return new ForStatementNode(null, variableName, startExpression, endExpression, stepExpression, body);
     }
 
     private StatementNode parseWhileStatement() {

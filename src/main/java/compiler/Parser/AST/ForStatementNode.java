@@ -47,7 +47,9 @@ public class ForStatementNode extends StatementNode {
     public String toString(String indent) {
         StringBuilder sb = new StringBuilder();
         sb.append(indent).append("For\n");
-        sb.append(variableType.toString(indent + "  "));
+        if (variableType != null) {
+            sb.append(variableType.toString(indent + "  "));
+        }
         sb.append(indent).append("  Identifier, ").append(variableName).append("\n");
         sb.append(indent).append("  Start\n");
         sb.append(startValue.toString(indent + "    "));

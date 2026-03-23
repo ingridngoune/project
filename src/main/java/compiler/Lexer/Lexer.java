@@ -227,54 +227,104 @@ public class Lexer {
     }
 
     //for 1 char operator,2 char operator, and 3 char operator
-    private Symbol getOperator() throws IOException{
-        switch(currentChar){
+
+    private void skipSpaces() throws IOException {
+        while (currentChar == ' ' || currentChar == '\t') {
+            nextRead();
+        }
+    }
+    private Symbol getOperator() throws IOException {
+        switch (currentChar) {
+
             case '+':
-            case '-':
-            case '*':
-            case '/':
-            case '%':
-            case '=':
-            case '<':
-            case '>':
-            case '|':
-            case '&':{
-                char c1=(char) currentChar;
+                nextRead();
+                return new Symbol(Token.PLUS, null);
+
+            case '-': {
                 nextRead();
 
-                // if the special is =/=
-                if(c1=='=' && currentChar=='/'){
+                // accepter -> ET - >
+                skipSpaces();
+                if (currentChar == '>') {
                     nextRead();
-                    if(currentChar=='='){
-                        nextRead();
-                        return new Symbol(Token.NOT_EQUAL,null);
-                    }
-                    throw new RuntimeException("LexicalError : malformed operator '=/='");
-
+                    return new Symbol(Token.ARROW, null);
                 }
 
-                // for two charactere operator
-                if(currentChar!=-1){
-                    String c2=""+c1+(char)currentChar;
-                    Token type2=OPERATORS.get(c2);
-                    if(type2!=null){
-                        nextRead();
-                        return new Symbol(type2,null);
-                    }
-                }
-
-                // for one character operator
-                Token type1=OPERATORS.get(String.valueOf(c1));
-                if(type1!=null){
-                    return new Symbol(type1,null);
-                }
-
-                throw new RuntimeException("LexicalError : unknown operator use");
-
+                return new Symbol(Token.MINUS, null);
             }
+
+            case '*':
+                nextRead();
+                return new Symbol(Token.MULTIPLY, null);
+
+            case '/':
+                nextRead();
+                return new Symbol(Token.DIVIDE, null);
+
+            case '%':
+                nextRead();
+                return new Symbol(Token.MODULO, null);
+
+            case '=': {
+                nextRead();
+
+                // ==
+                if (currentChar == '=') {
+                    nextRead();
+                    return new Symbol(Token.EQUAL, null);
+                }
+
+                // =/=
+                if (currentChar == '/') {
+                    nextRead();
+                    if (currentChar == '=') {
+                        nextRead();
+                        return new Symbol(Token.NOT_EQUAL, null);
+                    }
+                    throw new RuntimeException("LexicalError: malformed '=/='");
+                }
+
+                return new Symbol(Token.ASSIGN, null);
+            }
+
+            case '<': {
+                nextRead();
+                if (currentChar == '=') {
+                    nextRead();
+                    return new Symbol(Token.LESS_EQUAL, null);
+                }
+                return new Symbol(Token.LESS, null);
+            }
+
+            case '>': {
+                nextRead();
+                if (currentChar == '=') {
+                    nextRead();
+                    return new Symbol(Token.GREATER_EQUAL, null);
+                }
+                return new Symbol(Token.GREATER, null);
+            }
+
+            case '&': {
+                nextRead();
+                if (currentChar == '&') {
+                    nextRead();
+                    return new Symbol(Token.AND, null);
+                }
+                throw new RuntimeException("LexicalError: expected &&");
+            }
+
+            case '|': {
+                nextRead();
+                if (currentChar == '|') {
+                    nextRead();
+                    return new Symbol(Token.OR, null);
+                }
+                throw new RuntimeException("LexicalError: expected ||");
+            }
+
             default:
                 return null;
-
         }
     }
 
