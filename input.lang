@@ -1,3 +1,5 @@
+#./gradlew run --args="-parser input.lang"
+
 # Source is a single file. No imports, etc.
 # Comments look like this. No block comments.
 # The language is strongly and statically typed.
