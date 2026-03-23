@@ -19,4 +19,16 @@ public class FunctionCallNode extends ExpressionNode {
     public List<ExpressionNode> getArguments() {
         return arguments;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Call\n");
+        sb.append(function.toString(indent + "  "));
+        for (ExpressionNode argument : arguments) {
+            sb.append(indent).append("  Argument\n");
+            sb.append(argument.toString(indent + "    "));
+        }
+        return sb.toString();
+    }
 }

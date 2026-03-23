@@ -20,4 +20,15 @@ public class VariableDeclarationNode extends StatementNode{
     public ExpressionNode getInitValue() {
         return initValue;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Var, ").append(name).append("\n");
+        sb.append(type.toString(indent + "  "));
+        if (initValue != null) {
+            sb.append(initValue.toString(indent + "  "));
+        }
+        return sb.toString();
+    }
 }

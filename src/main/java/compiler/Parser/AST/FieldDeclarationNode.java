@@ -16,4 +16,13 @@ public class FieldDeclarationNode extends ASTNode{
     public String getName() {
         return name;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Field\n");
+        sb.append(type.toString(indent + "  "));
+        sb.append(indent).append("  Identifier, ").append(name).append("\n");
+        return sb.toString();
+    }
 }

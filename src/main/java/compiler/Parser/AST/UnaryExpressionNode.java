@@ -17,4 +17,12 @@ public class UnaryExpressionNode extends ExpressionNode {
     public ExpressionNode getExpression() {
         return expression;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append(operator).append("\n");
+        sb.append(expression.toString(indent + "  "));
+        return sb.toString();
+    }
 }

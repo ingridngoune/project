@@ -20,21 +20,15 @@ public class TestLexer {
 
     @Test
     public void testSimpleDeclaration() {
-
         Lexer lexer = new Lexer(new StringReader("INT x = 2;"));
-
         assertEquals(Token.INT_TYPE, lexer.getNextSymbol().getType());
-
         Symbol id = lexer.getNextSymbol();
         assertEquals(Token.IDENTIFIER, id.getType());
         assertEquals("x", id.getValue());
-
         assertEquals(Token.ASSIGN, lexer.getNextSymbol().getType());
-
         Symbol number = lexer.getNextSymbol();
         assertEquals(Token.INT_LITERAL, number.getType());
         assertEquals(2, number.getValue());
-
         assertEquals(Token.SEMILCOLON, lexer.getNextSymbol().getType());
         assertEquals(Token.EOF, lexer.getNextSymbol().getType());
     }
@@ -43,13 +37,10 @@ public class TestLexer {
     //  float test (.234 case)
     @Test
     public void testFloatStartingWithDot() {
-
         Lexer lexer = new Lexer(new StringReader(".234"));
-
         Symbol s = lexer.getNextSymbol();
         assertEquals(Token.FLOAT_LITERAL, s.getType());
         assertEquals(0.234, (Double) s.getValue(), 0.0001);
-
         assertEquals(Token.EOF, lexer.getNextSymbol().getType());
     }
 
@@ -57,13 +48,10 @@ public class TestLexer {
 
     @Test
     public void testStringEscape() {
-
         Lexer lexer = new Lexer(new StringReader("\"Hello\\nWorld\""));
-
         Symbol s = lexer.getNextSymbol();
         assertEquals(Token.STRING_LITERAL, s.getType());
         assertEquals("Hello\nWorld", s.getValue());
-
         assertEquals(Token.EOF, lexer.getNextSymbol().getType());
     }
 
@@ -71,9 +59,7 @@ public class TestLexer {
 
     @Test
     public void testBooleanLiteral() {
-
         Lexer lexer = new Lexer(new StringReader("true"));
-
         Symbol s = lexer.getNextSymbol();
         assertEquals(Token.BOOL_LITERAL, s.getType());
         assertEquals(true, s.getValue());
@@ -83,9 +69,7 @@ public class TestLexer {
 
     @Test
     public void testOperators() {
-
         Lexer lexer = new Lexer(new StringReader("== =/= <= >= && ||"));
-
         assertEquals(Token.EQUAL, lexer.getNextSymbol().getType());
         assertEquals(Token.NOT_EQUAL, lexer.getNextSymbol().getType());
         assertEquals(Token.LESS_EQUAL, lexer.getNextSymbol().getType());
@@ -100,13 +84,10 @@ public class TestLexer {
 
         Lexer l1 = new Lexer(new StringReader("INT x = 2;"));
         Lexer l2 = new Lexer(new StringReader("INT   x=2;"));
-
         while (true) {
             Symbol s1 = l1.getNextSymbol();
             Symbol s2 = l2.getNextSymbol();
-
             assertEquals(s1.getType(), s2.getType());
-
             if (s1.getType() == Token.EOF)
                 break;
         }

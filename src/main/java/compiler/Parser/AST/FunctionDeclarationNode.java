@@ -30,4 +30,18 @@ public class FunctionDeclarationNode extends Declaration {
     public BlockNode getBody() {
         return body;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Function, ").append(name).append("\n");
+        if (returnType != null) {
+            sb.append(returnType.toString(indent + "  "));
+        }
+        for (ParameterNode param : parameters) {
+            sb.append(param.toString(indent + "  "));
+        }
+        sb.append(body.toString(indent + "  "));
+        return sb.toString();
+    }
 }

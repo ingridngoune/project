@@ -22,4 +22,13 @@ public class ConstantDeclarationNode extends Declaration {
     public ExpressionNode getValue() {
         return value;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Const, ").append(name).append("\n");
+        sb.append(type.toString(indent + "  "));
+        sb.append(value.toString(indent + "  "));
+        return sb.toString();
+    }
 }

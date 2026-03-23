@@ -23,4 +23,13 @@ public class BinaryExpressionNode extends ExpressionNode {
     public ExpressionNode getRight() {
         return right;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append(operator).append("\n");
+        sb.append(left.toString(indent + "  "));
+        sb.append(right.toString(indent + "  "));
+        return sb.toString();
+    }
 }

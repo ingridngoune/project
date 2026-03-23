@@ -17,4 +17,18 @@ public class WhileStatementNode extends StatementNode {
     public BlockNode getBody() {
         return body;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("While\n");
+        sb.append(indent).append("  Condition\n");
+        sb.append(condition.toString(indent + "    "));
+        sb.append(body.toString(indent + "  "));
+        return sb.toString();
+    }
+
+
+
+
 }

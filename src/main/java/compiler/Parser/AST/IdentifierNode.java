@@ -12,4 +12,9 @@ public class IdentifierNode extends ExpressionNode {
         return name;
     }
 
+    @Override
+    public String toString(String indent) {
+        return indent + "Identifier, " + name + "\n";
+    }
+
 }

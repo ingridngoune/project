@@ -11,4 +11,14 @@ public class ReturnStatementNode extends StatementNode {
     public ExpressionNode getExpression() {
         return expression;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Return\n");
+        if (expression != null) {
+            sb.append(expression.toString(indent + "  "));
+        }
+        return sb.toString();
+    }
 }

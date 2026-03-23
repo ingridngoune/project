@@ -18,4 +18,14 @@ public class CollectionDeclarationNode extends Declaration{
     public List<FieldDeclarationNode> getFields() {
         return fields;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Collection, ").append(name).append("\n");
+        for (FieldDeclarationNode field : fields) {
+            sb.append(field.toString(indent + "  "));
+        }
+        return sb.toString();
+    }
 }

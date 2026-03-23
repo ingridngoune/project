@@ -17,4 +17,13 @@ public class TypeNode extends ASTNode {
         return array;
     }
 
+    @Override
+    public String toString(String indent) {
+        String typeName = name;
+        if (array) {
+            typeName += "[]";
+        }
+        return indent + "Type, " + typeName + "\n";
+    }
+
 }

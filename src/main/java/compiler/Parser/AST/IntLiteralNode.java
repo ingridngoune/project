@@ -11,4 +11,9 @@ public class IntLiteralNode extends ExpressionNode {
     public int getValue() {
         return value;
     }
+
+    @Override
+    public String toString(String indent) {
+        return indent + "Int, " + value + "\n";
+    }
 }

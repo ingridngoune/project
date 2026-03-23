@@ -6,6 +6,8 @@ package compiler;
 import compiler.Lexer.Lexer;
 import compiler.Lexer.Symbol;
 import compiler.Lexer.Token;
+import compiler.Parser.AST.ProgramNode;
+import compiler.Parser.Parser;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -14,21 +16,40 @@ public class Compiler {
     public static void main(String[] args) throws Exception {
 
         if (args.length != 2) {
-            System.err.println("Incorrect Number of args ");
+            System.err.println("Incorrect number of args ");
             System.exit(1);
         }
+        String part = args[0];
+        String fileName = args[1];
 
-        try (FileReader reader = new FileReader(args[1])) {
-            Lexer lexer = new Lexer(reader);
-            Symbol symbol;
+        try (FileReader reader = new FileReader(fileName)) {
+            if (part.equals("-lexer")) {
+                Lexer lexer = new Lexer(reader);
+                Symbol symbol;
+                do {
+                    symbol = lexer.getNextSymbol();
+                    System.out.println(symbol);
+                } while (symbol.getType() != Token.EOF);
 
-            do {
-                symbol = lexer.getNextSymbol();
-                System.out.println(symbol);
-            } while (symbol.getType() != Token.EOF);
+            } else if (part.equals("-parser")) {
+                Lexer lexer = new Lexer(reader);
+                Parser parser = new Parser(lexer);
+                ProgramNode ast = parser.getAST();
+                System.out.println(ast);
+            } else {
+                System.err.println("Unknown step: " + part);
+                System.exit(1);
+            }
 
         } catch (IOException e) {
             System.err.println("Cannot read input file");
+            System.exit(1);
+        } catch (RuntimeException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+            System.exit(1);
         }
 
     }

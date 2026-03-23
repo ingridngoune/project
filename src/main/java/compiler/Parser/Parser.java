@@ -10,6 +10,7 @@ import java.util.List;
 public class Parser {
     private Lexer lexer;
     private Symbol current;
+    private Symbol next;
 
     public Parser(Lexer lexer) {
         this.lexer = lexer;
@@ -17,9 +18,15 @@ public class Parser {
 
 
     //-------------------helpers-------------------
+    public ProgramNode getAST() {
+        current =lexer.getNextSymbol();
+        next=lexer.getNextSymbol();
+        return parseProgram();
+    }
 
     private void nextSymbol() {
-        current = lexer.getNextSymbol();
+        current=next;
+        next = lexer.getNextSymbol();
     }
 
     private boolean checkAndConsume(Token expectedToken) {
@@ -46,11 +53,11 @@ public class Parser {
     }
 
     private boolean isExpressionStart(Token token) {
-        return token == Token.INT_LITERAL || token == Token.FLOAT_LITERAL || token == Token.STRING_LITERAL || token == Token.BOOL_LITERAL || token == Token.IDENTIFIER || token == Token.COLLECTION_IDENTIFIER || token == Token.LEFT_PAREN;
+        return token == Token.INT_LITERAL || token == Token.FLOAT_LITERAL || token == Token.STRING_LITERAL || token == Token.BOOL_LITERAL || token == Token.IDENTIFIER || token == Token.LEFT_PAREN || token == Token.NOT || token == Token.MINUS || token == Token.COLLECTION_IDENTIFIER;
     }
-    public ProgramNode getAST() {
-        nextSymbol();
-        return parseProgram();
+
+    private boolean isBaseTypeStart(Token token) {
+        return token == Token.INT_TYPE  || token == Token.FLOAT_TYPE  || token == Token.BOOL_TYPE  || token == Token.STRING_TYPE  || token == Token.COLLECTION_IDENTIFIER;
     }
 
 
@@ -144,7 +151,7 @@ public class Parser {
     }
 
     private ExpressionNode parseInitializer() {
-        if (isTypeStart(current.getType())) {
+        if (isBaseTypeStart(current.getType()) && next.getType() == Token.ARRAY) {
             return parseArrayCreation();
         }
         return parseExpression();
@@ -330,9 +337,7 @@ public class Parser {
         if (token == Token.IDENTIFIER) {
             return parseAssignmentOrExpressionStatement();
         }
-        throw new RuntimeException(
-                "Syntax error expected a statement but found " + current.getType()
-        );
+        throw new RuntimeException("Syntax error expected a statement but found " + current.getType());
     }
 
     private StatementNode parseAssignmentOrExpressionStatement() {
@@ -346,9 +351,6 @@ public class Parser {
         return new ExpressionStatementNode(left);
     }
 
-    private ExpressionNode parseAccessExpression() {
-        return null;
-    }
 
     private StatementNode parseForStatement() {
         consume(Token.FOR);
@@ -402,6 +404,186 @@ public class Parser {
 
     //----------------parse expression-----------------------
     private ExpressionNode parseExpression() {
-        return null;
+        return parseOrExpression();
     }
+
+    private ExpressionNode parseOrExpression() {
+        ExpressionNode left = parseAndExpression();
+        while (current.getType() == Token.OR) {
+            consume(Token.OR);
+            ExpressionNode right = parseAndExpression();
+            left = new BinaryExpressionNode(left, "OR", right);
+        }
+        return left;
+    }
+
+    private ExpressionNode parseAndExpression() {
+        ExpressionNode left = parseComparisonExpression();
+        while (current.getType() == Token.AND) {
+            consume(Token.AND);
+            ExpressionNode right = parseComparisonExpression();
+            left = new BinaryExpressionNode(left, "AND", right);
+        }
+        return left;
+    }
+
+    private ExpressionNode parseComparisonExpression() {
+        ExpressionNode left = parseAdditiveExpression();
+        if (current.getType() == Token.EQUAL) {
+            consume(Token.EQUAL);
+            return new BinaryExpressionNode(left, "EQUAL", parseAdditiveExpression());
+        }
+        if (current.getType() == Token.NOT_EQUAL) {
+            consume(Token.NOT_EQUAL);
+            return new BinaryExpressionNode(left, "NOT_EQUAL", parseAdditiveExpression());
+        }
+        if (current.getType() == Token.LESS) {
+            consume(Token.LESS);
+            return new BinaryExpressionNode(left, "LESS", parseAdditiveExpression());
+        }
+        if (current.getType() == Token.LESS_EQUAL) {
+            consume(Token.LESS_EQUAL);
+            return new BinaryExpressionNode(left, "LESS_EQUAL", parseAdditiveExpression());
+        }
+        if (current.getType() == Token.GREATER) {
+            consume(Token.GREATER);
+            return new BinaryExpressionNode(left, "GREATER", parseAdditiveExpression());
+        }
+        if (current.getType() == Token.GREATER_EQUAL) {
+            consume(Token.GREATER_EQUAL);
+            return new BinaryExpressionNode(left, "GREATER_EQUAL", parseAdditiveExpression());
+        }
+        return left;
+    }
+
+    private ExpressionNode parseAdditiveExpression() {
+        ExpressionNode left = parseMultiplicativeExpression();
+        while (current.getType() == Token.PLUS || current.getType() == Token.MINUS) {
+            if (current.getType() == Token.PLUS) {
+                consume(Token.PLUS);
+                left = new BinaryExpressionNode(left, "PLUS", parseMultiplicativeExpression());
+            } else {
+                consume(Token.MINUS);
+                left = new BinaryExpressionNode(left, "MINUS", parseMultiplicativeExpression());
+            }
+        }
+        return left;
+    }
+
+    private ExpressionNode parseMultiplicativeExpression() {
+        ExpressionNode left = parseUnaryExpression();
+        while (current.getType() == Token.MULTIPLY || current.getType() == Token.DIVIDE || current.getType() == Token.MODULO) {
+            if (current.getType() == Token.MULTIPLY) {
+                consume(Token.MULTIPLY);
+                left = new BinaryExpressionNode(left, "MULTIPLY", parseUnaryExpression());
+            } else if (current.getType() == Token.DIVIDE) {
+                consume(Token.DIVIDE);
+                left = new BinaryExpressionNode(left, "DIVIDE", parseUnaryExpression());
+            } else {
+                consume(Token.MODULO);
+                left = new BinaryExpressionNode(left, "MODULO", parseUnaryExpression());
+            }
+        }
+
+        return left;
+    }
+
+    private ExpressionNode parseUnaryExpression() {
+        if (current.getType() == Token.NOT) {
+            consume(Token.NOT);
+            return new UnaryExpressionNode("NOT", parseUnaryExpression());
+        }
+        if (current.getType() == Token.MINUS) {
+            consume(Token.MINUS);
+            return new UnaryExpressionNode("MINUS", parseUnaryExpression());
+        }
+        return parseAccessExpression();
+    }
+
+    private ExpressionNode parseAccessExpression() {
+        ExpressionNode left = parsePrimaryExpression();
+        while (current.getType() == Token.LEFT_PAREN || current.getType() == Token.LEFT_BRACKET || current.getType() == Token.DOT) {
+            if (current.getType() == Token.LEFT_PAREN) {
+                consume(Token.LEFT_PAREN);
+                List<ExpressionNode> arguments = parseOptionalArgumentList();
+                consume(Token.RIGHT_PAREN);
+                left = new FunctionCallNode(left, arguments);
+            } else if (current.getType() == Token.LEFT_BRACKET) {
+                consume(Token.LEFT_BRACKET);
+                ExpressionNode index = parseExpression();
+                consume(Token.RIGHT_BRACKET);
+                left = new ArrayAccessNode(left, index);
+            } else {
+                consume(Token.DOT);
+                String fieldName = (String) current.getValue();
+                consume(Token.IDENTIFIER);
+                left = new FieldAccessNode(left, fieldName);
+            }
+        }
+
+        return left;
+    }
+
+    private List<ExpressionNode> parseOptionalArgumentList() {
+        if (isExpressionStart(current.getType())) {
+            return parseArgumentList();
+        }
+        return new ArrayList<>();
+    }
+
+    private List<ExpressionNode> parseArgumentList() {
+        List<ExpressionNode> arguments = new ArrayList<>();
+        arguments.add(parseExpression());
+        while (checkAndConsume(Token.COMMA)) {
+            arguments.add(parseExpression());
+        }
+
+        return arguments;
+    }
+
+    private ExpressionNode parsePrimaryExpression() {
+        if (isBaseTypeStart(current.getType()) && next.getType() == Token.ARRAY) {
+            return parseArrayCreation();
+        }
+        if (current.getType() == Token.INT_LITERAL) {
+            int value = ((Number) current.getValue()).intValue();
+            consume(Token.INT_LITERAL);
+            return new IntLiteralNode(value);
+        }
+        if (current.getType() == Token.FLOAT_LITERAL) {
+            float value = ((Number) current.getValue()).floatValue();
+            consume(Token.FLOAT_LITERAL);
+            return new FloatLiteralNode(value);
+        }
+        if (current.getType() == Token.STRING_LITERAL) {
+            String value = (String) current.getValue();
+            consume(Token.STRING_LITERAL);
+            return new StringLiteralNode(value);
+        }
+        if (current.getType() == Token.BOOL_LITERAL) {
+            boolean value = (Boolean) current.getValue();
+            consume(Token.BOOL_LITERAL);
+            return new BoolLiteralNode(value);
+        }
+        if (current.getType() == Token.IDENTIFIER) {
+            String name = (String) current.getValue();
+            consume(Token.IDENTIFIER);
+            return new IdentifierNode(name);
+        }
+        if (current.getType() == Token.COLLECTION_IDENTIFIER) {
+            String name = (String) current.getValue();
+            consume(Token.COLLECTION_IDENTIFIER);
+            return new IdentifierNode(name);
+        }
+        if (current.getType() == Token.LEFT_PAREN) {
+            consume(Token.LEFT_PAREN);
+            ExpressionNode expression = parseExpression();
+            consume(Token.RIGHT_PAREN);
+            return expression;
+        }
+
+        throw new RuntimeException("syntax errr: expected a primary expression but found " + current.getType());
+    }
+
+
 }

@@ -36,4 +36,26 @@ public class ProgramNode extends ASTNode{
         return functionDeclarations;
     }
 
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Program\n");
+        String childIndent = indent + "  ";
+        for (ConstantDeclarationNode constant : constantDeclarations) {
+            sb.append(constant.toString(childIndent));
+        }
+        for (CollectionDeclarationNode collection : collectionDeclarations) {
+            sb.append(collection.toString(childIndent));
+        }
+        for (VariableDeclarationNode variable : globalVariableDeclarations) {
+            sb.append(variable.toString(childIndent));
+        }
+        for (FunctionDeclarationNode function : functionDeclarations) {
+            sb.append(function.toString(childIndent));
+        }
+        return sb.toString();
+    }
+
+
+
 }

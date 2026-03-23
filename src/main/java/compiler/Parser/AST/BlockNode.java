@@ -12,4 +12,14 @@ public class BlockNode extends StatementNode {
     public List<StatementNode> getStatements() {
         return statements;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Block\n");
+        for (StatementNode stmt : statements) {
+            sb.append(stmt.toString(indent + "  "));
+        }
+        return sb.toString();
+    }
 }

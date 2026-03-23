@@ -17,4 +17,13 @@ public class AssignmentStatementNode extends StatementNode {
     public ExpressionNode getValue() {
         return value;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("Assign\n");
+        sb.append(target.toString(indent + "  "));
+        sb.append(value.toString(indent + "  "));
+        return sb.toString();
+    }
 }

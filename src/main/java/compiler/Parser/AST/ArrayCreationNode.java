@@ -17,4 +17,13 @@ public class ArrayCreationNode extends ExpressionNode {
     public ExpressionNode getSize() {
         return size;
     }
+
+    @Override
+    public String toString(String indent) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append("NewArray\n");
+        sb.append(elementType.toString(indent + "  "));
+        sb.append(size.toString(indent + "  "));
+        return sb.toString();
+    }
 }

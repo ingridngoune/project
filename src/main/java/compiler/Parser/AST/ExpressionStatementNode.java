@@ -12,4 +12,9 @@ public class ExpressionStatementNode extends StatementNode {
     public ExpressionNode getExpression() {
         return expression;
     }
+
+    @Override
+    public String toString(String indent) {
+        return expression.toString(indent);
+    }
 }

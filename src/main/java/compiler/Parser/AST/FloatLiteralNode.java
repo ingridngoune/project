@@ -11,4 +11,9 @@ public class FloatLiteralNode extends ExpressionNode {
     public float getValue() {
         return value;
     }
+
+    @Override
+    public String toString(String indent) {
+        return indent + "Float, " + value + "\n";
+    }
 }

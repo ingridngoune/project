@@ -11,4 +11,9 @@ public class BoolLiteralNode extends ExpressionNode {
     public boolean getValue() {
         return value;
     }
+
+    @Override
+    public String toString(String indent) {
+        return indent + "Bool, " + value + "\n";
+    }
 }
