@@ -69,7 +69,7 @@ src/
 │           ├── ExpressionNode.java
 │           └── ...
 └── test/
-    └── ...                    # Test input files
+    └── ...                    # Test  files
 ```
 
 ---
@@ -88,8 +88,8 @@ src/
 
 ## Authors
 
-- Ingrid Ngoune Laure
-- Cindie Scheuren
+- Ngoune Kenfack Ingrid Laure 
+- Scheuren Cindie
 
 ---
 
