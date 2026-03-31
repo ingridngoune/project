@@ -1,4 +1,4 @@
-package compiler.Semanctic;
+package compiler.Semantic;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +14,7 @@ public class SymbolTable {
 
     public void addSymbol(String name,SymbolInfo info ){
         if(entries.containsKey(name)){
-            throw new RuntimeException("Scope error :" + name + "already declare in this scope");
+            throw new RuntimeException("ScopeError :" + name + "already declare in this scope");
         }
         entries.put(name,info);
     }

@@ -1,40 +1,45 @@
-package compiler.Semanctic;
+package compiler.Semantic;
 
-import compiler.Lexer.Symbol;
 import compiler.Parser.AST.*;
 
 public class SemanticAnalyzer {
     // https://www.m-zakeri.ir/Compilers/lectures/07_Semantic-Analysis/
     //https://fr.scribd.com/presentation/723728381/8-Semantic-analysis-scope
 
-    public void analyze(ProgramNode program){
-        SymbolTable globalTable=new SymbolTable(null);
-        for (VariableDeclarationNode var:program.getGlobalVariableDeclarations()){
-            SemanticType varType=toSemanticType(var.getType());
+    public void analyze(ProgramNode program) {
+        SymbolTable symbolTable = new SymbolTable(null);
+        firstPass(program, symbolTable);
+        secondPass(program, symbolTable);
 
-            SymbolInfo info=new SymbolInfo(var.getName(),SymbolInfo.Kind.VARIABLE,varType);
+    }
 
-            globalTable.addSymbol(var.getName(),info);
+    private void firstPass(ProgramNode program, SymbolTable symbolTable) {
+        for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
+            SemanticType varType = toSemanticType(var.getType());
+            SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE, varType);
+            symbolTable.addSymbol(var.getName(), info);
+        }
+    }
 
-            if(var.getInitValue()!=null){
-                SemanticType exprType=checkExpression(var.getInitValue(),globalTable);
-
-                if(!varType.equals(exprType)){
-                    throw new RuntimeException("Type Error : can't assign "+exprType+" to "+varType);
+    private void secondPass(ProgramNode program, SymbolTable globalTable) {
+        for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
+            if (var.getInitValue() != null) {
+                SemanticType varType = toSemanticType(var.getType());
+                SemanticType exprType = checkExpression(var.getInitValue(), globalTable);
+                if (!varType.equals(exprType)) {
+                    throw new RuntimeException("TypeError : can't assign " + exprType + " to " + varType);
                 }
             }
         }
-
-
-
     }
+
     private SemanticType toSemanticType(TypeNode typeNode) {
         return new SemanticType(typeNode.getName(), typeNode.isArray());
     }
 
-    private SemanticType checkExpression(ExpressionNode expr,SymbolTable table){
-        if(expr instanceof IntLiteralNode){
-            return new SemanticType("INT",false);
+    private SemanticType checkExpression(ExpressionNode expr, SymbolTable symbolTable) {
+        if (expr instanceof IntLiteralNode) {
+            return new SemanticType("INT", false);
         }
         if (expr instanceof FloatLiteralNode) {
             return new SemanticType("FLOAT", false);
@@ -46,11 +51,49 @@ public class SemanticAnalyzer {
             return new SemanticType("BOOL", false);
         }
         if (expr instanceof IdentifierNode id) {
-            return table.getSymbol(id.getName()).getType();
+            return symbolTable.getSymbol(id.getName()).getType();
         }
-        throw new RuntimeException(
-                "semantic error: unknown expression" + expr.getClass().getSimpleName()
-        );
 
+        if (expr instanceof BinaryExpressionNode bin) {
+            SemanticType leftType = checkExpression(bin.getLeft(), symbolTable);
+            SemanticType rightType = checkExpression(bin.getRight(), symbolTable);
+            String operator = bin.getOperator();
+
+            if (operator.equals("PLUS") || operator.equals("MINUS") || operator.equals("MULTIPLY") || operator.equals("DIVIDE") || operator.equals("MODULO")) {
+                if (!leftType.isNumeric() || !rightType.isNumeric()) {
+                    throw new RuntimeException("OperatorError: " + operator + " required numeric operands");
+                }
+            if (!leftType.equals(rightType)) {
+                throw new RuntimeException("OperatorError: operands of " + operator + " must have the same type");
+            }
+            return leftType;
+        }
+
+        if (operator.equals("AND") || operator.equals("OR")) {
+            if (!leftType.isBool() || !rightType.isBool()) {
+                throw new RuntimeException("OperatorError: " + operator + " requires BOOL operands");
+            }
+            return new SemanticType("BOOL", false);
+        }
+        if (operator.equals("EQUAL") || operator.equals("NOT_EQUAL")) {
+            if (!leftType.equals(rightType)) {
+                throw new RuntimeException("OperatorError: " + operator + " requires operands of the same type");
+            }
+            return new SemanticType("BOOL", false);
+        }
+
+        if (operator.equals("LESS") || operator.equals("LESS_EQUAL") || operator.equals("GREATER") || operator.equals("GREATER_EQUAL")) {
+            if (!leftType.isNumeric() || !rightType.isNumeric()) {
+                throw new RuntimeException("OperatorError: " + operator + " requires numeric operands");
+            }
+            if (!leftType.equals(rightType)) {
+                throw new RuntimeException("OperatorError: " + operator + " requires operands of the same type"
+                );
+            }
+            return new SemanticType("BOOL", false);
+        }
+        throw new RuntimeException("OperatorError: unknown binary operator " + operator);
+    }
+        throw new RuntimeException("SemanticError: unknown expression"+expr.getClass().getSimpleName());
     }
 }

@@ -1,4 +1,4 @@
-package compiler.Semanctic;
+package compiler.Semantic;
 
 import java.util.Objects;
 
