@@ -1,5 +1,6 @@
 package compiler.Semantic;
 
+import compiler.Lexer.Symbol;
 import compiler.Parser.AST.*;
 
 public class SemanticAnalyzer {
@@ -25,9 +26,9 @@ public class SemanticAnalyzer {
         for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
             if (var.getInitValue() != null) {
                 SemanticType varType = toSemanticType(var.getType());
-                SemanticType exprType = checkExpression(var.getInitValue(), globalTable);
-                if (!varType.equals(exprType)) {
-                    throw new RuntimeException("TypeError : can't assign " + exprType + " to " + varType);
+                SemanticType valueType = inferType(var.getInitValue(), globalTable);
+                if (!varType.equals(valueType)) {
+                    throw new RuntimeException("TypeError : can't assign " + valueType + " to " + varType);
                 }
             }
         }
@@ -37,7 +38,7 @@ public class SemanticAnalyzer {
         return new SemanticType(typeNode.getName(), typeNode.isArray());
     }
 
-    private SemanticType checkExpression(ExpressionNode expr, SymbolTable symbolTable) {
+    private SemanticType inferType(ExpressionNode expr, SymbolTable symbolTable) {
         if (expr instanceof IntLiteralNode) {
             return new SemanticType("INT", false);
         }
@@ -54,9 +55,11 @@ public class SemanticAnalyzer {
             return symbolTable.getSymbol(id.getName()).getType();
         }
 
+        // for binary expression
+
         if (expr instanceof BinaryExpressionNode bin) {
-            SemanticType leftType = checkExpression(bin.getLeft(), symbolTable);
-            SemanticType rightType = checkExpression(bin.getRight(), symbolTable);
+            SemanticType leftType = inferType(bin.getLeft(), symbolTable);
+            SemanticType rightType = inferType(bin.getRight(), symbolTable);
             String operator = bin.getOperator();
 
             if (operator.equals("PLUS") || operator.equals("MINUS") || operator.equals("MULTIPLY") || operator.equals("DIVIDE") || operator.equals("MODULO")) {
@@ -94,6 +97,61 @@ public class SemanticAnalyzer {
         }
         throw new RuntimeException("OperatorError: unknown binary operator " + operator);
     }
+        // for unary expression
+        if(expr instanceof UnaryExpressionNode unary){
+            SemanticType expressionType=inferType(unary.getExpression(),symbolTable);
+            String operator= unary.getOperator();
+
+            if(operator.equals("NOT")){
+                    if(!expressionType.isBool()){
+                        throw new RuntimeException("OperatorError: NOT require a Bool operand");
+                    }
+                    return new SemanticType("BOOL",false);
+            }
+            if (operator.equals("MINUS")) {
+                if (!expressionType.isNumeric()) {
+                    throw new RuntimeException("OperatorError:MINUS requires a numeric operand");
+                }
+                return expressionType;
+            }
+
+        }
+
         throw new RuntimeException("SemanticError: unknown expression"+expr.getClass().getSimpleName());
+    }
+
+    private boolean isAssignable(ExpressionNode target){
+        return target instanceof IdentifierNode || target instanceof ArrayAccessNode || target instanceof FieldAccessNode;
+    }
+
+
+    private void checkStatement(StatementNode stmt, SymbolTable symbolTable){
+        if (stmt instanceof VariableDeclarationNode var){
+            SemanticType declaredType=toSemanticType(var.getType());
+            SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE,declaredType);
+
+            symbolTable.addSymbol(var.getName(),info);
+
+            if(var.getInitValue()!=null){
+                SemanticType initValueType=inferType(var.getInitValue(),symbolTable);
+                if(!declaredType.equals(initValueType)){
+                    throw  new RuntimeException("TypeErro: can't assign"+initValueType+" to "+declaredType);
+                }
+            }
+        }else if(stmt instanceof AssignmentStatementNode assign){
+            if(!isAssignable(assign.getTarget())) {
+                throw new RuntimeException("TypeError: invalid Assignement Target");
+            }
+            SemanticType leftType=inferType(assign.getTarget(),symbolTable);
+            SemanticType rightType=inferType(assign.getValue(),symbolTable);
+
+            if (!leftType.equals(rightType)){
+                throw new RuntimeException("TypeError: can't assign "+rightType+" to "+leftType);
+            }
+            else{
+                throw new RuntimeException("SemancticError: unknown statement "+stmt+getClass().getSimpleName());
+            }
+        }
+
     }
 }
