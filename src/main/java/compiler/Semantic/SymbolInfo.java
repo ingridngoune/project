@@ -25,9 +25,7 @@ public class SymbolInfo {
         this.fields=null;
     }
 
-    public SymbolInfo(String name, Kind kind, SemanticType type,
-                      List<SemanticType> parameterTypes,
-                      Map<String, SemanticType> fields) {
+    public SymbolInfo(String name, Kind kind, SemanticType type, List<SemanticType> parameterTypes, Map<String, SemanticType> fields) {
         this.name = name;
         this.kind = kind;
         this.type = type;

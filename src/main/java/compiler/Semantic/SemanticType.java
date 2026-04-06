@@ -15,7 +15,7 @@ public class SemanticType {
         return name;
     }
 
-    public boolean isarray(){
+    public boolean isArray(){
         return array;
     }
 

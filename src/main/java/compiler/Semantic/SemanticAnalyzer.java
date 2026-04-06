@@ -4,6 +4,11 @@ import com.google.errorprone.annotations.Var;
 import compiler.Lexer.Symbol;
 import compiler.Parser.AST.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class SemanticAnalyzer {
     // https://www.m-zakeri.ir/Compilers/lectures/07_Semantic-Analysis/
     //https://fr.scribd.com/presentation/723728381/8-Semantic-analysis-scope
@@ -16,23 +21,38 @@ private SemanticType currentReturnType;
     }
 
     private void firstPass(ProgramNode program, SymbolTable symbolTable) {
-        for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
+        addBuiltFunctions(symbolTable);
+        for(VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
             SemanticType varType = toSemanticType(var.getType());
             SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE, varType);
             symbolTable.addSymbol(var.getName(), info);
         }
+
+
     }
 
-    private void secondPass(ProgramNode program, SymbolTable globalTable) {
+
+    private void secondPass(ProgramNode program, SymbolTable symbolTable) {
         for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
             if (var.getInitValue() != null) {
                 SemanticType varType = toSemanticType(var.getType());
-                SemanticType valueType = inferType(var.getInitValue(), globalTable);
+                SemanticType valueType = inferType(var.getInitValue(), symbolTable);
                 if (!varType.equals(valueType)) {
                     throw new RuntimeException("TypeError : can't assign " + valueType + " to " + varType);
                 }
             }
         }
+        for (FunctionDeclarationNode function : program.getFunctionDeclarations()) {
+
+        }
+    }
+
+    private void addBuiltFunctions(SymbolTable symbolTable) {
+        symbolTable.addSymbol("read_INT", new SymbolInfo("read_INT", SymbolInfo.Kind.FUNCTION, new SemanticType("INT", false), List.of(), null));
+        symbolTable.addSymbol("read_FLOAT", new SymbolInfo("read_FLOAT", SymbolInfo.Kind.FUNCTION, new SemanticType("FLOAT", false), List.of(), null));
+        symbolTable.addSymbol("read_STRING", new SymbolInfo("read_STRING", SymbolInfo.Kind.FUNCTION, new SemanticType("STRING", false), List.of(), null));
+        symbolTable.addSymbol("print",new SymbolInfo("print",SymbolInfo.Kind.FUNCTION, null, List.of(), null));
+        symbolTable.addSymbol("println", new SymbolInfo("println",SymbolInfo.Kind.FUNCTION, null, List.of(), null));
     }
 
     private SemanticType toSemanticType(TypeNode typeNode) {
@@ -55,7 +75,7 @@ private SemanticType currentReturnType;
         if (expr instanceof IdentifierNode id) {
             SymbolInfo info=symbolTable.getSymbol(id.getName());
             if(info==null){
-                throw new RuntimeException("NameError: undefined identifier "+id.getName());
+                throw new RuntimeException("ScopeError: undefined identifier "+id.getName());
             }
            return info.getType();
         }
@@ -66,14 +86,27 @@ private SemanticType currentReturnType;
             SemanticType rightType = inferType(bin.getRight(), symbolTable);
             String operator = bin.getOperator();
 
-            if (operator.equals("PLUS") || operator.equals("MINUS") || operator.equals("MULTIPLY") || operator.equals("DIVIDE") || operator.equals("MODULO")) {
+            if (operator.equals("PLUS")) {
+                if (leftType.getName().equals("STRING") && !leftType.isArray() && rightType.getName().equals("STRING") && !rightType.isArray()) {
+                    return new SemanticType("STRING", false);
+                }
                 if (!leftType.isNumeric() || !rightType.isNumeric()) {
                     throw new RuntimeException("OperatorError: " + operator + " required numeric operands");
                 }
-            if (!leftType.equals(rightType)) {
-                throw new RuntimeException("OperatorError: operands of " + operator + " must have the same type");
+                if (leftType.getName().equals("FLOAT") || rightType.getName().equals("FLOAT")) {
+                    return new SemanticType("FLOAT", false);
+                }
+                return new SemanticType("INT", false);
             }
-            return leftType;
+
+            if (operator.equals("MINUS") || operator.equals("MULTIPLY") || operator.equals("DIVIDE") || operator.equals("MODULO")) {
+                if (!leftType.isNumeric() || !rightType.isNumeric()) {
+                    throw new RuntimeException("OperatorError: " + operator + " required numeric operands");
+                }
+                if (leftType.getName().equals("FLOAT") || rightType.getName().equals("FLOAT")) {
+                    return new SemanticType("FLOAT", false);
+                }
+                return new SemanticType("INT", false);
         }
 
         if (operator.equals("AND") || operator.equals("OR")) {
@@ -122,10 +155,42 @@ private SemanticType currentReturnType;
         }
         if(expr instanceof ArrayAccessNode arrayAccess){
             SemanticType arrayType=inferType(arrayAccess.getArray(),symbolTable);
-            SemanticType indexArray=inferType(arrayAccess.getIndex(),symbolTable);
+            SemanticType indexType=inferType(arrayAccess.getIndex(),symbolTable);
+                if (!indexType.equals(new SemanticType("INT", false))) {
+                    throw new RuntimeException("TypeError: array index must be INT");
+                }
+                if (!arrayType.isArray()) {
+                    throw new RuntimeException("TypeError: trying to index a non-array expression");
+                }
+                return new SemanticType(arrayType.getName(), false);
         }
 
+        if(expr instanceof ArrayCreationNode arraycreation){
+            SemanticType sizeType=inferType(arraycreation.getSize(),symbolTable);
+                if(sizeType.equals(new SemanticType("INT",false))){
+                    throw new RuntimeException("TypeError:array size must be of type Int");
+                }
+                TypeNode typenode=arraycreation.getElementType();
+                return new SemanticType(typenode.getName(),true);
+            }
+
+        //for fields Access
+        if (expr instanceof FieldAccessNode fieldAccess) {
+            SemanticType targetType = inferType(fieldAccess.getTarget(), symbolTable);
+            SymbolInfo info = symbolTable.getSymbol(targetType.getName());
+            if (info == null || info.getKind() != SymbolInfo.Kind.COLLECTION) {
+                throw new RuntimeException("TypeError: can't access field on non-collection " + targetType);
+            }
+            SemanticType fieldType = info.getFields().get(fieldAccess.getFieldName());
+            if (fieldType == null) {
+                throw new RuntimeException("ScopeError: unknown field " + fieldAccess.getFieldName());
+            }
+            return fieldType;
+        }
+
+
         throw new RuntimeException("SemanticError: unknown expression"+expr.getClass().getSimpleName());
+
     }
 
 
@@ -143,7 +208,10 @@ private SemanticType currentReturnType;
         } else if(stmt instanceof AssignmentStatementNode assign){
             checkAssigment(assign,symbolTable);
 
-        }else if(stmt instanceof BlockNode block){
+        }else if(stmt instanceof ExpressionStatementNode exprStmt){
+            checkExpressionStmt(exprStmt,symbolTable);
+        }
+        else if(stmt instanceof BlockNode block){
             checkBlock(block,symbolTable);
 
         } else if (stmt instanceof IfStatementNode ifstmt){
@@ -155,8 +223,8 @@ private SemanticType currentReturnType;
         else if (stmt instanceof  ForStatementNode forStmt){
             checkFor(forStmt,symbolTable);
         }
-        else if (stmt instanceof ReturnStatementNode returnStmt){
-            checkReturn(returnStmt,symbolTable);
+        else if (stmt instanceof ReturnStatementNode returnStmt) {
+            checkReturn(returnStmt, symbolTable);
         }
         else{
             throw new RuntimeException("SemancticError: unknown statement "+stmt+getClass().getSimpleName());
@@ -164,7 +232,30 @@ private SemanticType currentReturnType;
 
     }
 
+    private void checkExpressionStmt(ExpressionStatementNode exprStmt, SymbolTable symbolTable) {
+        inferType(exprStmt.getExpression(),symbolTable);
+    }
+
+
     private void checkFor(ForStatementNode forStmt, SymbolTable symbolTable) {
+       SymbolInfo info=symbolTable.getSymbol(forStmt.getVariableName());
+       if(info==null){
+           throw new RuntimeException("ScopeError : undefined loop varibale "+forStmt.getVariableName());
+       }
+       SemanticType intType=new SemanticType("INT",false);
+       if(!info.getType().equals(intType)){
+           throw  new RuntimeException("TypeError: for loop variable must be INT");
+       }
+
+        SemanticType startType = inferType(forStmt.getStartValue(), symbolTable);
+        SemanticType endType = inferType(forStmt.getEndValue(), symbolTable);
+        SemanticType stepType = inferType(forStmt.getStepValue(), symbolTable);
+
+        if (!startType.equals(intType) || !endType.equals(intType) || !stepType.equals(intType)) {
+            throw new RuntimeException("TypeError: for start, end and step must be INT");
+        }
+
+        checkBlock(forStmt.getBody(), symbolTable);
 
     }
 
@@ -173,7 +264,7 @@ private SemanticType currentReturnType;
         if(var.getInitValue()!=null){
             SemanticType initValueType=inferType(var.getInitValue(),symbolTable);
             if(!declaredType.equals(initValueType)) {
-                throw new RuntimeException("TypeErro: can't assign" + initValueType + " to " + declaredType);
+                throw new RuntimeException("TypeError: can't assign" + initValueType + " to " + declaredType);
             }
         }
         SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE,declaredType);
@@ -226,9 +317,10 @@ private SemanticType currentReturnType;
 
     private void checkReturn(ReturnStatementNode returnStmt,SymbolTable symbolTable){
         if(currentReturnType == null){
-            throw  new RuntimeException("ReturnError : return is called outside a function" );
+            if(returnStmt.getExpression()!=null){
+                throw  new RuntimeException("ReturnError : void function cannot return a value " );
+            }
         }
-
         if(returnStmt.getExpression()==null){
             throw  new RuntimeException("ReturnError: function must return a value");
 
@@ -239,4 +331,6 @@ private SemanticType currentReturnType;
             throw new RuntimeException("ReturnError: expected " + currentReturnType + " but found " + returnedType);
         }
     }
+
+
 }
