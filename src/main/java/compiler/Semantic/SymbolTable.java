@@ -19,6 +19,16 @@ public class SymbolTable {
         entries.put(name,info);
     }
 
+    public boolean exists(String name) {
+        if (entries.containsKey(name)) {
+            return true;
+        }
+        if (previousTable != null) {
+            return previousTable.exists(name);
+        }
+        return false;
+    }
+
     public SymbolInfo getSymbol(String name){
         if(entries.containsKey(name)){
             return entries.get(name);

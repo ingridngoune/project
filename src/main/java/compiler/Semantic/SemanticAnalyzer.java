@@ -27,13 +27,10 @@ private SemanticType currentReturnType;
             SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE, varType);
             symbolTable.addSymbol(var.getName(), info);
         }
-        for(CollectionDeclarationNode collection : program.getCollectionDeclarations()) {
-            Map<String, SemanticType> fields = new HashMap<>();
-            for (FieldDeclarationNode field : collection.getFields()) {
-                SemanticType fieldType = toSemanticType(field.getType());
-                fields.put(field.getName(), fieldType);
-            }
+        for (CollectionDeclarationNode collection : program.getCollectionDeclarations()) {
+            Map<String, SemanticType> fields = checkCollection(collection, symbolTable);
             SymbolInfo info = new SymbolInfo(collection.getName(), SymbolInfo.Kind.COLLECTION, new SemanticType(collection.getName(), false), null, fields);
+
             symbolTable.addSymbol(collection.getName(), info);
         }
         for(FunctionDeclarationNode function : program.getFunctionDeclarations()) {
@@ -187,7 +184,7 @@ private SemanticType currentReturnType;
 
         if(expr instanceof ArrayCreationNode arraycreation){
             SemanticType sizeType=inferType(arraycreation.getSize(),symbolTable);
-                if(sizeType.equals(new SemanticType("INT",false))){
+                if(!sizeType.equals(new SemanticType("INT",false))){
                     throw new RuntimeException("TypeError:array size must be of type Int");
                 }
                 TypeNode typenode=arraycreation.getElementType();
@@ -207,12 +204,17 @@ private SemanticType currentReturnType;
             }
             return fieldType;
         }
-
+        if (expr instanceof FunctionCallNode call) {
+            ExpressionNode functionExpr = call.getFunction();
+            if (!(functionExpr instanceof IdentifierNode id)) {
+                throw new RuntimeException("SemanticError: invalid function call target");
+            }
+            return inferFunctionType(id.getName(), call.getArguments(), symbolTable);
+        }
 
         throw new RuntimeException("SemanticError: unknown expression"+expr.getClass().getSimpleName());
 
     }
-
 
     //check if a expr is assignable
     private boolean isAssignable(ExpressionNode target){
@@ -405,6 +407,25 @@ private SemanticType currentReturnType;
         }
         checkBlock(function.getBody(), localTable);
         currentReturnType = null;
+    }
+
+    private Map<String, SemanticType> checkCollection(CollectionDeclarationNode collection, SymbolTable symbolTable) {
+        String collectionName = collection.getName();
+        if (collectionName.equals("INT") || collectionName.equals("FLOAT") || collectionName.equals("STRING") || collectionName.equals("BOOL")) {
+            throw new RuntimeException("CollectionError: invalid collection name " + collectionName);
+        }
+        if (symbolTable.exists(collectionName)) {
+            throw new RuntimeException("CollectionError: collection " + collectionName + " already defined");
+        }
+        Map<String, SemanticType> fields = new HashMap<>();
+        for (FieldDeclarationNode field : collection.getFields()) {
+            String fieldName = field.getName();
+            if (fields.containsKey(fieldName)) {
+                throw new RuntimeException("CollectionError: duplicate field " + fieldName + " in collection " + collectionName);
+            }
+            fields.put(fieldName, toSemanticType(field.getType()));
+        }
+        return fields;
     }
 
 
