@@ -4,10 +4,7 @@ import com.google.errorprone.annotations.Var;
 import compiler.Lexer.Symbol;
 import compiler.Parser.AST.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SemanticAnalyzer {
     // https://www.m-zakeri.ir/Compilers/lectures/07_Semantic-Analysis/
@@ -30,7 +27,6 @@ private SemanticType currentReturnType;
         for (CollectionDeclarationNode collection : program.getCollectionDeclarations()) {
             Map<String, SemanticType> fields = checkCollection(collection, symbolTable);
             SymbolInfo info = new SymbolInfo(collection.getName(), SymbolInfo.Kind.COLLECTION, new SemanticType(collection.getName(), false), null, fields);
-
             symbolTable.addSymbol(collection.getName(), info);
         }
         for(FunctionDeclarationNode function : program.getFunctionDeclarations()) {
@@ -45,22 +41,24 @@ private SemanticType currentReturnType;
             SymbolInfo info = new SymbolInfo(function.getName(), SymbolInfo.Kind.FUNCTION, returnType, parameterTypes, null);
             symbolTable.addSymbol(function.getName(), info);
         }
+        for (ConstantDeclarationNode constant : program.getConstantDeclarations()) {
+            SemanticType constType = toSemanticType(constant.getType());
+            SymbolInfo info = new SymbolInfo(constant.getName(), SymbolInfo.Kind.VARIABLE, constType);
+            symbolTable.addSymbol(constant.getName(), info);
+        }
 
     }
 
 
     private void secondPass(ProgramNode program, SymbolTable symbolTable) {
         for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
-            if (var.getInitValue() != null) {
-                SemanticType varType = toSemanticType(var.getType());
-                SemanticType valueType = inferType(var.getInitValue(), symbolTable);
-                if (!varType.equals(valueType)) {
-                    throw new RuntimeException("TypeError : can't assign " + valueType + " to " + varType);
-                }
-            }
+            checkVariable(var,symbolTable);
         }
         for (FunctionDeclarationNode function : program.getFunctionDeclarations()) {
             checkFunction(function, symbolTable);
+        }
+        for (ConstantDeclarationNode constant : program.getConstantDeclarations()) {
+            checkConstant(constant,symbolTable);
         }
     }
 
@@ -417,7 +415,7 @@ private SemanticType currentReturnType;
         if (symbolTable.exists(collectionName)) {
             throw new RuntimeException("CollectionError: collection " + collectionName + " already defined");
         }
-        Map<String, SemanticType> fields = new HashMap<>();
+        Map<String, SemanticType> fields = new LinkedHashMap<>();
         for (FieldDeclarationNode field : collection.getFields()) {
             String fieldName = field.getName();
             if (fields.containsKey(fieldName)) {
@@ -428,7 +426,24 @@ private SemanticType currentReturnType;
         return fields;
     }
 
+    private void checkVariable(VariableDeclarationNode var,SymbolTable symbolTable){
+        if (var.getInitValue() != null) {
+            SemanticType varType = toSemanticType(var.getType());
+            SemanticType valueType = inferType(var.getInitValue(), symbolTable);
+            if (!varType.equals(valueType)) {
+                throw new RuntimeException("TypeError : can't assign " + valueType + " to " + varType);
+            }
+        }
 
+    }
+    private void checkConstant(ConstantDeclarationNode constant,SymbolTable symbolTable){
+        SemanticType declaredType = toSemanticType(constant.getType());
+        SemanticType valueType = inferType(constant.getValue(), symbolTable);
+        if (!declaredType.equals(valueType)) {
+            throw new RuntimeException("TypeError: can't assign " + valueType + " to " + declaredType);
+        }
+
+    }
 
 
 }
