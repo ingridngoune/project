@@ -27,7 +27,27 @@ private SemanticType currentReturnType;
             SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE, varType);
             symbolTable.addSymbol(var.getName(), info);
         }
-
+        for(CollectionDeclarationNode collection : program.getCollectionDeclarations()) {
+            Map<String, SemanticType> fields = new HashMap<>();
+            for (FieldDeclarationNode field : collection.getFields()) {
+                SemanticType fieldType = toSemanticType(field.getType());
+                fields.put(field.getName(), fieldType);
+            }
+            SymbolInfo info = new SymbolInfo(collection.getName(), SymbolInfo.Kind.COLLECTION, new SemanticType(collection.getName(), false), null, fields);
+            symbolTable.addSymbol(collection.getName(), info);
+        }
+        for(FunctionDeclarationNode function : program.getFunctionDeclarations()) {
+            List<SemanticType> parameterTypes = new ArrayList<>();
+            for (ParameterNode parameter : function.getParameters()) {
+                parameterTypes.add(toSemanticType(parameter.getType()));
+            }
+            SemanticType returnType = null;
+            if (function.getReturnType() != null) {
+                returnType = toSemanticType(function.getReturnType());
+            }
+            SymbolInfo info = new SymbolInfo(function.getName(), SymbolInfo.Kind.FUNCTION, returnType, parameterTypes, null);
+            symbolTable.addSymbol(function.getName(), info);
+        }
 
     }
 
@@ -43,7 +63,7 @@ private SemanticType currentReturnType;
             }
         }
         for (FunctionDeclarationNode function : program.getFunctionDeclarations()) {
-
+            checkFunction(function, symbolTable);
         }
     }
 
@@ -331,6 +351,63 @@ private SemanticType currentReturnType;
             throw new RuntimeException("ReturnError: expected " + currentReturnType + " but found " + returnedType);
         }
     }
+
+
+    private void checkArguments(String name, List<SemanticType> expectedTypes, List<ExpressionNode> arguments, SymbolTable symbolTable) {
+        if (expectedTypes.size() != arguments.size()) {
+            throw new RuntimeException("ArgumentError: wrong number of arguments for " + name);
+        }
+        for (int i = 0; i < arguments.size(); i++) {
+            SemanticType expectedType = expectedTypes.get(i);
+            SemanticType actualType = inferType(arguments.get(i), symbolTable);
+            if (!expectedType.equals(actualType)) {
+                throw new RuntimeException("ArgumentError: argument " + (i+1) + " of " +name+ " should be " +expectedType+ " but found " +actualType);
+            }
+        }
+    }
+
+    private SemanticType inferFunctionType(String name, List<ExpressionNode> arguments, SymbolTable symbolTable) {
+        SymbolInfo info = symbolTable.getSymbol(name);
+        if (info == null) {
+            throw new RuntimeException("ScopeError: undefined function or collection " + name);
+        }
+        if (info.getKind() == SymbolInfo.Kind.FUNCTION) {
+            if (name.equals("print") || name.equals("println")) {
+                if (arguments.size() > 1) {
+                    throw new RuntimeException("ArgumentError: wrong number of arguments for " + name);
+                }
+                if (arguments.size() == 1) {
+                    inferType(arguments.get(0), symbolTable);
+                }
+                return null;
+            }
+            checkArguments(name, info.getParameterTypes(), arguments, symbolTable);
+            return info.getType();
+        }
+        if (info.getKind() == SymbolInfo.Kind.COLLECTION) {
+            List<SemanticType> expectedTypes = new ArrayList<>(info.getFields().values());
+            checkArguments(name, expectedTypes, arguments, symbolTable);
+            return info.getType();
+        }
+        throw new RuntimeException("ArgumentError: " + name + " is not a functiion");
+    }
+
+    private void checkFunction(FunctionDeclarationNode function, SymbolTable symbolTable) {
+        SymbolTable localTable = new SymbolTable(symbolTable);
+        currentReturnType = null;
+        if (function.getReturnType() != null) {
+            currentReturnType = toSemanticType(function.getReturnType());
+        }
+        for (ParameterNode parameter : function.getParameters()) {
+            SemanticType parameterType = toSemanticType(parameter.getType());
+            SymbolInfo info = new SymbolInfo(parameter.getName(), SymbolInfo.Kind.VARIABLE, parameterType);
+            localTable.addSymbol(parameter.getName(), info);
+        }
+        checkBlock(function.getBody(), localTable);
+        currentReturnType = null;
+    }
+
+
 
 
 }
