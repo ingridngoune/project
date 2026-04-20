@@ -12,6 +12,7 @@ import compiler.Semantic.SemanticAnalyzer;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringReader;
 
 public class Compiler {
     public static void main(String[] args){
@@ -25,9 +26,11 @@ public class Compiler {
             Lexer lexer = new Lexer(reader);
             Parser parser = new Parser(lexer);
             ProgramNode ast = parser.getAST();
+            System.out.println(ast);
             SemanticAnalyzer analyzer = new SemanticAnalyzer();
             analyzer.analyze(ast);
-        } catch (IOException e) {
+            System.out.println("analyse finie sans erreur");
+       } catch (IOException e) {
             System.err.println("Cannot read input file");
             System.exit(1);
         } catch (RuntimeException e) {

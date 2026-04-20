@@ -43,7 +43,7 @@ private SemanticType currentReturnType;
         }
         for (ConstantDeclarationNode constant : program.getConstantDeclarations()) {
             SemanticType constType = toSemanticType(constant.getType());
-            SymbolInfo info = new SymbolInfo(constant.getName(), SymbolInfo.Kind.VARIABLE, constType);
+            SymbolInfo info = new SymbolInfo(constant.getName(), SymbolInfo.Kind.CONSTANT, constType);
             symbolTable.addSymbol(constant.getName(), info);
         }
 
