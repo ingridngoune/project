@@ -3,19 +3,18 @@
  */
 package compiler;
 
+import compiler.CodeGenerator.CodeGenerator;
 import compiler.Lexer.Lexer;
-import compiler.Lexer.Symbol;
-import compiler.Lexer.Token;
 import compiler.Parser.AST.ProgramNode;
 import compiler.Parser.Parser;
 import compiler.Semantic.SemanticAnalyzer;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.StringReader;
+
 
 public class Compiler {
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
 
         if (args.length != 1) {
             System.err.println("Incorrect number of args ");
@@ -30,7 +29,10 @@ public class Compiler {
             SemanticAnalyzer analyzer = new SemanticAnalyzer();
             analyzer.analyze(ast);
             System.out.println("analyse finie sans erreur");
-       } catch (IOException e) {
+            CodeGenerator generator = new CodeGenerator();
+            generator.generate(ast, "Main.class");
+            System.out.println("Class file generated.");
+        } catch (IOException e) {
             System.err.println("Cannot read input file");
             System.exit(1);
         } catch (RuntimeException e) {

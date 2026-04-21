@@ -1,9 +1,3 @@
-def INT square(INT v) {
-INT misdirection = v
-return v*v;
-}
 def main() {
-INT value = 2;
-INT result = square(value);
-INT misdirection2 = misdirection;
+    println("ingrid");
 }
