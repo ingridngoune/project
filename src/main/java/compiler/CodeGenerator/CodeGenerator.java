@@ -34,7 +34,6 @@ public class CodeGenerator implements Opcodes {
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
-
     private void generateMainMethod(ProgramNode program, ClassWriter cw) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
         mv.visitCode();
@@ -43,7 +42,6 @@ public class CodeGenerator implements Opcodes {
         List<StatementNode> statements=body.getStatements();
         for(StatementNode stmt:statements){
             generateStatement(stmt,mv);
-
         }
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
@@ -62,31 +60,18 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateStatement(StatementNode stmt, MethodVisitor mv) {
-        if(stmt instanceof ExpressionStatementNode){
-            ExpressionStatementNode exprStmt = (ExpressionStatementNode) stmt;
-            ExpressionNode expr = exprStmt.getExpression();
-            generateExpression(expr, mv);
+        if(stmt instanceof ExpressionStatementNode exprStmt){
+            generateExpression(exprStmt.getExpression(), mv);
+            return;
         }
+        throw new RuntimeException("Unsupported statement"+stmt);
     }
 
     private void generateExpression(ExpressionNode expr, MethodVisitor mv) {
 
-        if(expr instanceof FunctionCallNode){
-            FunctionCallNode call = (FunctionCallNode) expr;
-            ExpressionNode function = call.getFunction();
-            List<ExpressionNode> arguments = call.getArguments();
-            if(function instanceof IdentifierNode){
-                IdentifierNode id=(IdentifierNode) function;
-                String functionName=id.getName();
-                if(functionName.equals("println")){
-                    mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-                    ExpressionNode argument = arguments.get(0);
-                    generateExpression(argument, mv);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-                    return;
-                }
-            }
-
+        if(expr instanceof FunctionCallNode call){
+            generateFunctionCall(call,mv);
+            return;
         }
         if (expr instanceof StringLiteralNode) {
             StringLiteralNode str = (StringLiteralNode) expr;
@@ -94,7 +79,41 @@ public class CodeGenerator implements Opcodes {
             mv.visitLdcInsn(value);
             return;
         }
-
+        throw new RuntimeException("Unsupported expression: " + expr);
 
     }
+
+    private void generateFunctionCall(FunctionCallNode call,MethodVisitor mv){
+        ExpressionNode function = call.getFunction();
+        List<ExpressionNode> arguments = call.getArguments();
+        if(function instanceof IdentifierNode id) {
+            String functionName = id.getName();
+            if(isBuiltIn(functionName)){
+                generateBuiltin(functionName,arguments,mv);
+                return;
+            }
+            throw new RuntimeException("function"+ functionName+"not implemented yet");
+        }
+        throw new RuntimeException("Unsupported function call");
+    }
+
+    private void generateBuiltin(String functionName, List<ExpressionNode> arguments, MethodVisitor mv) {
+        if (functionName.equals("println")) {
+            if (arguments.size() != 1) {
+                throw new RuntimeException("println expects one argument");
+            }
+            mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            ExpressionNode argument = arguments.get(0);
+            generateExpression(argument, mv);
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+            return;
+        }
+        throw new RuntimeException("Unknown builtin: " + functionName);
+    }
+
+    private boolean isBuiltIn(String functionName) {
+        return functionName.equals("println");
+    }
+
+
 }
