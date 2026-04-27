@@ -14,6 +14,8 @@ import org.objectweb.asm.Label;
 
 public class CodeGenerator implements Opcodes {
 
+    private ProgramNode currentProgram;
+
 
     public void generate(ProgramNode program, String outputfile) throws IOException {
         String className = "Main";
@@ -49,8 +51,6 @@ public class CodeGenerator implements Opcodes {
     private void generateMainMethod(ProgramNode program, ClassWriter cw) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
         mv.visitCode();
-        variableCounter = 1;
-        localVariables.clear();
         FunctionDeclarationNode mainFunction = getMainFunction(program);
         BlockNode body = mainFunction.getBody();
         List<StatementNode> statements = body.getStatements();
@@ -135,6 +135,7 @@ public class CodeGenerator implements Opcodes {
     }
 
     private String getExpressionTypeName(ExpressionNode expr) {
+        return null;
     }
 
 
@@ -219,12 +220,67 @@ public class CodeGenerator implements Opcodes {
                 generateBuiltin(functionName, arguments, mv);
                 return;
             }
+            if (isCollectionName(functionName)) {
+                mv.visitTypeInsn(NEW, functionName);
+                mv.visitInsn(DUP);
+                for (ExpressionNode arg : arguments) {
+                    generateExpression(arg, mv);
+                }
+                String descriptor = getCollectionConstructorDescriptor(functionName);
+                mv.visitMethodInsn(INVOKESPECIAL, functionName, "<init>", descriptor, false);
+                return;
+            }
+            FunctionDeclarationNode functionDecl = findFunctionByName(functionName);
+            for (ExpressionNode arg : arguments) {
+                generateExpression(arg, mv);
+            }
+            String descriptor = getMethodDescriptor(functionDecl);
+            mv.visitMethodInsn(INVOKESTATIC, "Main", functionName, descriptor, false);
+            return;
         }
         throw new RuntimeException("Unsupported function call");
+
+    }
+
+    private FunctionDeclarationNode findFunctionByName(String functionName) {
+        for (FunctionDeclarationNode f : currentProgram.getFunctionDeclarations()) {
+            if (f.getName().equals(functionName)) {
+                return f;
+            }
+        }
+        throw new RuntimeException("Function not found: " + functionName);
+    }
+
+    private String getCollectionConstructorDescriptor(String collectionName) {
+        for (CollectionDeclarationNode collection : currentProgram.getCollectionDeclarations()) {
+            if (collection.getName().equals(collectionName)) {
+                return buildConstructorDescriptor(collection);
+            }
+        }
+        throw new RuntimeException("Collection not found: " + collectionName);
+    }
+
+    private String buildConstructorDescriptor(CollectionDeclarationNode collection) {
+        StringBuilder sb = new StringBuilder("(");
+
+        for (FieldDeclarationNode field : collection.getFields()) {
+            sb.append(getTypeDescriptor(field.getType()));
+        }
+        sb.append(")V");
+        return sb.toString();
+    }
+
+    private boolean isCollectionName(String collectionName) {
+        for (CollectionDeclarationNode collection : currentProgram.getCollectionDeclarations()) {
+            if (collection.getName().equals(collectionName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isBuiltIn(String functionName) {
-        return true;
+        return functionName.equals("read_INT") || functionName.equals("read_FLOAT") || functionName.equals("read_STRING") || functionName.equals("print_INT") || functionName.equals("print_FLOAT") || functionName.equals("print") || functionName.equals("println");
     }
 
 
@@ -257,6 +313,28 @@ public class CodeGenerator implements Opcodes {
             default:
                 return "Ljava/lang/Object;";
         }
+    }
+    private String getTypeDescriptor(TypeNode type) {
+        String baseDescriptor = getTypeDescriptor(type.getName());
+        if (type.isArray()) {
+            return "[" + baseDescriptor;
+        }
+        return baseDescriptor;
+    }
+
+    private String getMethodDescriptor(FunctionDeclarationNode function) {
+        StringBuilder sb = new StringBuilder("(");
+        for (ParameterNode param : function.getParameters()) {
+            sb.append(getTypeDescriptor(param.getType()));
+        }
+        sb.append(")");
+        TypeNode returnType = function.getReturnType();
+        if (returnType == null) {
+            sb.append("V");
+        } else {
+            sb.append(getTypeDescriptor(returnType));
+        }
+        return sb.toString();
     }
 }
    
