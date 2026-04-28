@@ -10,12 +10,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.objectweb.asm.Label;
 
 public class CodeGenerator implements Opcodes {
 
     private ProgramNode currentProgram;
-
+    private int variableCounter;
+    private Map<String, LocalVariableInfo> localVariables = new HashMap<>();
 
     public void generate(ProgramNode program, String outputfile) throws IOException {
         String className = "Main";
@@ -114,6 +114,56 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateAssignment(AssignmentStatementNode assignStmt, MethodVisitor mv) {
+        ExpressionNode target = assignStmt.getTarget();
+        ExpressionNode value = assignStmt.getValue();
+        if (target instanceof IdentifierNode id) {
+            String name = id.getName();
+            LocalVariableInfo info = localVariables.get(name);
+            int slot = info.getSlot();
+            TypeNode type = info.getType();
+            generateExpression(value, mv);
+            switch (type.getName()) {
+                case "INT":
+                case "BOOL":
+                    mv.visitVarInsn(ISTORE, slot);break;
+                case "FLOAT":
+                    mv.visitVarInsn(FSTORE, slot);break;
+                default:
+                    mv.visitVarInsn(ASTORE, slot);break;
+            }
+            return;
+        }
+        if (target instanceof ArrayAccessNode arrayAccess) {
+            ExpressionNode array = arrayAccess.getArray();
+            ExpressionNode index = arrayAccess.getIndex();
+
+            generateExpression(array, mv);
+            generateExpression(index, mv);
+            generateExpression(value, mv);
+
+            String elementType = getArrayElementTypeName(array);
+
+            switch (elementType) {
+                case "INT":
+                case "BOOL": mv.visitInsn(IASTORE);break;
+                case "FLOAT": mv.visitInsn(FASTORE);break;
+                default: mv.visitInsn(AASTORE);break;
+            }
+            return;
+        }
+        if (target instanceof FieldAccessNode fieldAccess) {
+            ExpressionNode object = fieldAccess.getTarget();
+            String fieldName = fieldAccess.getFieldName();
+
+            generateExpression(object, mv);
+            generateExpression(value, mv);
+            String className = getExpressionTypeName(object);
+            TypeNode fieldType = findFieldType(className, fieldName);
+
+            mv.visitFieldInsn(PUTFIELD, className, fieldName, getTypeDescriptor(fieldType)
+            );
+            return;
+        }
     }
 
     private void generateVariableDeclaration(VariableDeclarationNode varDecl, MethodVisitor mv) {
@@ -321,6 +371,18 @@ public class CodeGenerator implements Opcodes {
         }
         return baseDescriptor;
     }
+    private TypeNode findFieldType(String collectionName, String fieldName) {
+        for (CollectionDeclarationNode collection : currentProgram.getCollectionDeclarations()) {
+            if (collection.getName().equals(collectionName)) {
+                for (FieldDeclarationNode field : collection.getFields()) {
+                    if (field.getName().equals(fieldName)) {
+                        return field.getType();
+                    }
+                }
+            }
+        }
+        throw new RuntimeException("Field not found: " + collectionName + "." + fieldName);
+    }
 
     private String getMethodDescriptor(FunctionDeclarationNode function) {
         StringBuilder sb = new StringBuilder("(");
@@ -335,6 +397,29 @@ public class CodeGenerator implements Opcodes {
             sb.append(getTypeDescriptor(returnType));
         }
         return sb.toString();
+    }
+    private String getArrayElementTypeName(ExpressionNode arrayExpr) {
+        if (arrayExpr instanceof IdentifierNode id) {
+            LocalVariableInfo info = localVariables.get(id.getName());
+            TypeNode type = info.getType();
+            return type.getName();
+        }
+        throw new RuntimeException("Unsupported array expression");
+    }
+
+    private static class LocalVariableInfo {
+        private final int slot;
+        private final TypeNode type;
+        public LocalVariableInfo(int slot, TypeNode type) {
+            this.slot = slot;
+            this.type = type;
+        }
+        public int getSlot() {
+            return slot;
+        }
+        public TypeNode getType() {
+            return type;
+        }
     }
 }
    
