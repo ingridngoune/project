@@ -167,6 +167,42 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateVariableDeclaration(VariableDeclarationNode varDecl, MethodVisitor mv) {
+        String name = varDecl.getName();
+        ExpressionNode initValue = varDecl.getInitValue();
+        TypeNode type = varDecl.getType();
+        if (initValue != null) {
+            generateExpression(initValue, mv);
+        } else {
+            String typeName = type.getName();
+            switch (typeName) {
+                case "INT": mv.visitLdcInsn(0);break;
+                case "FLOAT": mv.visitLdcInsn(0.0f);break;
+                case "BOOL": mv.visitInsn(ICONST_0);break;
+                default: mv.visitInsn(ACONST_NULL);break;
+            }
+        }
+        int slot = variableCounter;
+        variableCounter += getTypeSize(type);
+        localVariables.put(name, new LocalVariableInfo(slot, type));
+        String typeName = type.getName();
+        switch (typeName) {
+            case "INT":
+            case "BOOL":
+                mv.visitVarInsn(ISTORE, slot);
+                break;
+            case "FLOAT": mv.visitVarInsn(FSTORE, slot);break;
+            default: mv.visitVarInsn(ASTORE, slot);break;
+        }
+    }
+    private int getTypeSize(TypeNode type) {
+        String name = type.getName();
+        switch (name) {
+            case "LONG":
+            case "DOUBLE":
+                return 2;
+            default:
+                return 1;
+        }
     }
 
     private void generateIfStatement(IfStatementNode ifStmt, MethodVisitor mv) {
