@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.objectweb.asm.Label;
 
 public class CodeGenerator implements Opcodes {
 
@@ -206,12 +207,46 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateIfStatement(IfStatementNode ifStmt, MethodVisitor mv) {
+        ExpressionNode condition = ifStmt.getCondition();
+        StatementNode thenBlock= ifStmt.getThenBlock();
+        StatementNode elseBlock = ifStmt.getElseBlock();
+
+        Label elseLabel = new Label();
+        Label endLabel = new Label();
+
+        generateExpression(condition, mv);
+        mv.visitJumpInsn(IFEQ, elseLabel);
+
+        generateStatement(thenBlock, mv);
+        mv.visitJumpInsn(GOTO, endLabel);
+
+        mv.visitLabel(elseLabel);
+
+        if (elseBlock != null) {
+            generateStatement(elseBlock, mv);
+        }
+
+        mv.visitLabel(endLabel);
     }
 
     private void generateBlock(BlockNode block, MethodVisitor mv) {
+        List<StatementNode> statements = block.getStatements();
+        for (StatementNode stmt : statements) {
+            generateStatement(stmt, mv);
+        }
     }
 
     private void generateWhileStatement(WhileStatementNode whileStmt, MethodVisitor mv) {
+        ExpressionNode condition = whileStmt.getCondition();
+        StatementNode body = whileStmt.getBody();
+        Label startLabel = new Label();
+        Label endLabel = new Label();
+        mv.visitLabel(startLabel);
+        generateExpression(condition, mv);
+        mv.visitJumpInsn(IFEQ, endLabel);
+        generateStatement(body, mv);
+        mv.visitJumpInsn(GOTO, startLabel);
+        mv.visitLabel(endLabel);
     }
 
     private void generateForStatement(ForStatementNode forStmt, MethodVisitor mv) {
