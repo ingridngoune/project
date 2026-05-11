@@ -37,6 +37,33 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateFunctions(ProgramNode program, ClassWriter cw) {
+        for (FunctionDeclarationNode function : program.getFunctionDeclarations()) {
+            if (!function.getName().equals("main")) {
+                generateFunction(function, cw);
+            }
+        }
+    }
+
+    private void generateFunction(FunctionDeclarationNode function, ClassWriter cw) {
+        BlockNode body = function.getBody();
+        String descriptor = getMethodDescriptor(function);
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, function.getName(), descriptor, null, null);
+        mv.visitCode();
+        variableCounter = 0;
+        localVariables.clear();
+        for (ParameterNode param : function.getParameters()) {
+            String name = param.getName();
+            TypeNode type = param.getType();
+            int slot = variableCounter;
+            variableCounter += getTypeSize(type);
+            localVariables.put(name, new LocalVariableInfo(slot, type));
+        }
+        generateBlock(body, mv);
+        if (function.getReturnType() == null) {
+            mv.visitInsn(RETURN);
+        }
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
     }
 
     private void generateDefaultConstructor(ClassWriter cw) {
@@ -250,6 +277,42 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateForStatement(ForStatementNode forStmt, MethodVisitor mv) {
+        String name = forStmt.getVariableName();
+        ExpressionNode start = forStmt.getStartValue();
+        ExpressionNode end = forStmt.getEndValue();
+        ExpressionNode step = forStmt.getStepValue();
+        BlockNode body = forStmt.getBody();
+
+        generateExpression(start, mv);
+
+        LocalVariableInfo info = localVariables.get(name);
+        int slot = info.getSlot();
+        mv.visitVarInsn(ISTORE, slot);
+        Label startLabel = new Label();
+        Label endLabel = new Label();
+        mv.visitLabel(startLabel);
+        mv.visitVarInsn(ILOAD, slot);
+        generateExpression(end, mv);
+        generateComparison(IF_ICMPLT, mv);
+        mv.visitJumpInsn(IFEQ, endLabel);
+        generateBlock(body, mv);
+        mv.visitVarInsn(ILOAD, slot);
+        generateExpression(step, mv);
+        mv.visitInsn(IADD);
+        mv.visitVarInsn(ISTORE, slot);
+        mv.visitJumpInsn(GOTO, startLabel);
+        mv.visitLabel(endLabel);
+    }
+
+    private void generateComparison(int operator, MethodVisitor mv) {
+        Label trueLabel = new Label();
+        Label falseLabel = new Label();
+        mv.visitJumpInsn(operator, trueLabel);
+        mv.visitInsn(ICONST_0);
+        mv.visitJumpInsn(GOTO, falseLabel);
+        mv.visitLabel(trueLabel);
+        mv.visitInsn(ICONST_1);
+        mv.visitLabel(falseLabel);
     }
 
     private void generateReturnStatement(ReturnStatementNode returnStmt, MethodVisitor mv) {
