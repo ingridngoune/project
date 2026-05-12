@@ -316,10 +316,116 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateReturnStatement(ReturnStatementNode returnStmt, MethodVisitor mv) {
+        ExpressionNode expr = returnStmt.getExpression();
+        if (expr == null) {
+            mv.visitInsn(RETURN);
+            return;
+        }
+        generateExpression(expr, mv);
+        String typeName = getExpressionTypeName(expr);
+        switch (typeName) {
+            case "INT":
+            case "BOOL":
+                mv.visitInsn(IRETURN);break;
+            case "FLOAT":
+                mv.visitInsn(FRETURN);break;
+            default:
+                mv.visitInsn(ARETURN);break;
+        }
     }
 
     private String getExpressionTypeName(ExpressionNode expr) {
-        return null;
+        if (expr instanceof IntLiteralNode) {
+            return "INT";
+        }
+        if (expr instanceof FloatLiteralNode) {
+            return "FLOAT";
+        }
+        if (expr instanceof BoolLiteralNode) {
+            return "BOOL";
+        }
+        if (expr instanceof StringLiteralNode) {
+            return "STRING";
+        }
+        if (expr instanceof IdentifierNode iden) {
+            LocalVariableInfo info = localVariables.get(iden.getName());
+            TypeNode type = info.getType();
+            if (type.isArray()) {
+                return "ARRAY";
+            }
+            return type.getName();
+        }
+        if (expr instanceof ArrayAccessNode arrayAccess) {
+            return getArrayElementTypeName(arrayAccess.getArray());
+        }
+        if (expr instanceof BinaryExpressionNode bin) {
+            String operator = bin.getOperator();
+            if (isArithmeticOperator(operator)) {
+                return getExpressionTypeName(bin.getLeft());
+            }
+            if (isComparisonOperator(operator)) {
+                return "BOOL";
+            }
+            if (isLogicalOperator(operator)) {
+                return "BOOL";
+            }
+        }
+        if (expr instanceof UnaryExpressionNode unary) {
+            String operator = unary.getOperator();
+
+            if (operator.equals("NOT")) {
+                return "BOOL";
+            }
+
+            if (operator.equals("MINUS")) {
+                return getExpressionTypeName(unary.getExpression());
+            }
+        }
+        if (expr instanceof FunctionCallNode call) {
+            ExpressionNode function = call.getFunction();
+
+            if (function instanceof IdentifierNode id) {
+                String functionName = id.getName();
+                if (isBuiltIn(functionName)) {
+                    return "VOID";
+                }
+                FunctionDeclarationNode functionDecl = findFunctionByName(functionName);
+                TypeNode returnType = functionDecl.getReturnType();
+                if (returnType == null) {
+                    return "VOID";
+                }
+                if (returnType.isArray()) {
+                    return "ARRAY";
+                }
+                return returnType.getName();
+            }
+        }
+        if (expr instanceof FieldAccessNode fieldAccess) {
+            ExpressionNode target = fieldAccess.getTarget();
+            String fieldName = fieldAccess.getFieldName();
+
+            String targetType = getExpressionTypeName(target);
+            TypeNode fieldType = findFieldType(targetType, fieldName);
+
+            if (fieldType.isArray()) {
+                return "ARRAY";
+            }
+
+            return fieldType.getName();
+        }
+        throw new RuntimeException("Unsupported expression type");
+    }
+
+    private boolean isLogicalOperator(String operator) {
+        return operator.equals("AND") || operator.equals("OR");
+    }
+
+    private boolean isComparisonOperator(String operator) {
+        return operator.equals("GREATER") || operator.equals("LESS") || operator.equals("GREATER_EQUAL") || operator.equals("LESS_EQUAL") || operator.equals("EQUAL") || operator.equals("NOT_EQUAL");
+    }
+
+    private boolean isArithmeticOperator(String operator) {
+        return operator.equals("PLUS") || operator.equals("MINUS") || operator.equals("MULTIPLY") || operator.equals("DIVIDE") || operator.equals("MODULO");
     }
 
 
