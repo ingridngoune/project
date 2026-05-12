@@ -1,15 +1,17 @@
 package compiler.Semantic;
 
-import com.google.errorprone.annotations.Var;
-import compiler.Lexer.Symbol;
 import compiler.Parser.AST.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SemanticAnalyzer {
     // https://www.m-zakeri.ir/Compilers/lectures/07_Semantic-Analysis/
     //https://fr.scribd.com/presentation/723728381/8-Semantic-analysis-scope
-private SemanticType currentReturnType;
+    private SemanticType currentReturnType;
+
     public void analyze(ProgramNode program) {
         SymbolTable symbolTable = new SymbolTable(null);
         firstPass(program, symbolTable);
@@ -19,7 +21,7 @@ private SemanticType currentReturnType;
 
     private void firstPass(ProgramNode program, SymbolTable symbolTable) {
         addBuiltFunctions(symbolTable);
-        for(VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
+        for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
             SemanticType varType = toSemanticType(var.getType());
             SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE, varType);
             symbolTable.addSymbol(var.getName(), info);
@@ -29,7 +31,7 @@ private SemanticType currentReturnType;
             SymbolInfo info = new SymbolInfo(collection.getName(), SymbolInfo.Kind.COLLECTION, new SemanticType(collection.getName(), false), null, fields);
             symbolTable.addSymbol(collection.getName(), info);
         }
-        for(FunctionDeclarationNode function : program.getFunctionDeclarations()) {
+        for (FunctionDeclarationNode function : program.getFunctionDeclarations()) {
             List<SemanticType> parameterTypes = new ArrayList<>();
             for (ParameterNode parameter : function.getParameters()) {
                 parameterTypes.add(toSemanticType(parameter.getType()));
@@ -52,13 +54,13 @@ private SemanticType currentReturnType;
 
     private void secondPass(ProgramNode program, SymbolTable symbolTable) {
         for (VariableDeclarationNode var : program.getGlobalVariableDeclarations()) {
-            checkVariable(var,symbolTable);
+            checkVariable(var, symbolTable);
         }
         for (FunctionDeclarationNode function : program.getFunctionDeclarations()) {
             checkFunction(function, symbolTable);
         }
         for (ConstantDeclarationNode constant : program.getConstantDeclarations()) {
-            checkConstant(constant,symbolTable);
+            checkConstant(constant, symbolTable);
         }
     }
 
@@ -66,8 +68,8 @@ private SemanticType currentReturnType;
         symbolTable.addSymbol("read_INT", new SymbolInfo("read_INT", SymbolInfo.Kind.FUNCTION, new SemanticType("INT", false), List.of(), null));
         symbolTable.addSymbol("read_FLOAT", new SymbolInfo("read_FLOAT", SymbolInfo.Kind.FUNCTION, new SemanticType("FLOAT", false), List.of(), null));
         symbolTable.addSymbol("read_STRING", new SymbolInfo("read_STRING", SymbolInfo.Kind.FUNCTION, new SemanticType("STRING", false), List.of(), null));
-        symbolTable.addSymbol("print",new SymbolInfo("print",SymbolInfo.Kind.FUNCTION, null, List.of(), null));
-        symbolTable.addSymbol("println", new SymbolInfo("println",SymbolInfo.Kind.FUNCTION, null, List.of(), null));
+        symbolTable.addSymbol("print", new SymbolInfo("print", SymbolInfo.Kind.FUNCTION, null, List.of(), null));
+        symbolTable.addSymbol("println", new SymbolInfo("println", SymbolInfo.Kind.FUNCTION, null, List.of(), null));
     }
 
     private SemanticType toSemanticType(TypeNode typeNode) {
@@ -88,11 +90,11 @@ private SemanticType currentReturnType;
             return new SemanticType("BOOL", false);
         }
         if (expr instanceof IdentifierNode id) {
-            SymbolInfo info=symbolTable.getSymbol(id.getName());
-            if(info==null){
-                throw new RuntimeException("ScopeError: undefined identifier "+id.getName());
+            SymbolInfo info = symbolTable.getSymbol(id.getName());
+            if (info == null) {
+                throw new RuntimeException("ScopeError: undefined identifier " + id.getName());
             }
-           return info.getType();
+            return info.getType();
         }
         // for binary expression
 
@@ -122,43 +124,43 @@ private SemanticType currentReturnType;
                     return new SemanticType("FLOAT", false);
                 }
                 return new SemanticType("INT", false);
-        }
+            }
 
-        if (operator.equals("AND") || operator.equals("OR")) {
-            if (!leftType.isBool() || !rightType.isBool()) {
-                throw new RuntimeException("OperatorError: " + operator + " requires BOOL operands");
+            if (operator.equals("AND") || operator.equals("OR")) {
+                if (!leftType.isBool() || !rightType.isBool()) {
+                    throw new RuntimeException("OperatorError: " + operator + " requires BOOL operands");
+                }
+                return new SemanticType("BOOL", false);
             }
-            return new SemanticType("BOOL", false);
-        }
-        if (operator.equals("EQUAL") || operator.equals("NOT_EQUAL")) {
-            if (!leftType.equals(rightType)) {
-                throw new RuntimeException("OperatorError: " + operator + " requires operands of the same type");
+            if (operator.equals("EQUAL") || operator.equals("NOT_EQUAL")) {
+                if (!leftType.equals(rightType)) {
+                    throw new RuntimeException("OperatorError: " + operator + " requires operands of the same type");
+                }
+                return new SemanticType("BOOL", false);
             }
-            return new SemanticType("BOOL", false);
-        }
 
-        if (operator.equals("LESS") || operator.equals("LESS_EQUAL") || operator.equals("GREATER") || operator.equals("GREATER_EQUAL")) {
-            if (!leftType.isNumeric() || !rightType.isNumeric()) {
-                throw new RuntimeException("OperatorError: " + operator + " requires numeric operands");
+            if (operator.equals("LESS") || operator.equals("LESS_EQUAL") || operator.equals("GREATER") || operator.equals("GREATER_EQUAL")) {
+                if (!leftType.isNumeric() || !rightType.isNumeric()) {
+                    throw new RuntimeException("OperatorError: " + operator + " requires numeric operands");
+                }
+                if (!leftType.equals(rightType)) {
+                    throw new RuntimeException("OperatorError: " + operator + " requires operands of the same type"
+                    );
+                }
+                return new SemanticType("BOOL", false);
             }
-            if (!leftType.equals(rightType)) {
-                throw new RuntimeException("OperatorError: " + operator + " requires operands of the same type"
-                );
-            }
-            return new SemanticType("BOOL", false);
+            throw new RuntimeException("OperatorError: unknown binary operator " + operator);
         }
-        throw new RuntimeException("OperatorError: unknown binary operator " + operator);
-    }
         // for unary expression
-        if(expr instanceof UnaryExpressionNode unary){
-            SemanticType expressionType=inferType(unary.getExpression(),symbolTable);
-            String operator= unary.getOperator();
+        if (expr instanceof UnaryExpressionNode unary) {
+            SemanticType expressionType = inferType(unary.getExpression(), symbolTable);
+            String operator = unary.getOperator();
 
-            if(operator.equals("NOT")){
-                    if(!expressionType.isBool()){
-                        throw new RuntimeException("OperatorError: NOT require a Bool operand");
-                    }
-                    return new SemanticType("BOOL",false);
+            if (operator.equals("NOT")) {
+                if (!expressionType.isBool()) {
+                    throw new RuntimeException("OperatorError: NOT require a Bool operand");
+                }
+                return new SemanticType("BOOL", false);
             }
             if (operator.equals("MINUS")) {
                 if (!expressionType.isNumeric()) {
@@ -168,26 +170,26 @@ private SemanticType currentReturnType;
             }
 
         }
-        if(expr instanceof ArrayAccessNode arrayAccess){
-            SemanticType arrayType=inferType(arrayAccess.getArray(),symbolTable);
-            SemanticType indexType=inferType(arrayAccess.getIndex(),symbolTable);
-                if (!indexType.equals(new SemanticType("INT", false))) {
-                    throw new RuntimeException("TypeError: array index must be INT");
-                }
-                if (!arrayType.isArray()) {
-                    throw new RuntimeException("TypeError: trying to index a non-array expression");
-                }
-                return new SemanticType(arrayType.getName(), false);
+        if (expr instanceof ArrayAccessNode arrayAccess) {
+            SemanticType arrayType = inferType(arrayAccess.getArray(), symbolTable);
+            SemanticType indexType = inferType(arrayAccess.getIndex(), symbolTable);
+            if (!indexType.equals(new SemanticType("INT", false))) {
+                throw new RuntimeException("TypeError: array index must be INT");
+            }
+            if (!arrayType.isArray()) {
+                throw new RuntimeException("TypeError: trying to index a non-array expression");
+            }
+            return new SemanticType(arrayType.getName(), false);
         }
 
-        if(expr instanceof ArrayCreationNode arraycreation){
-            SemanticType sizeType=inferType(arraycreation.getSize(),symbolTable);
-                if(!sizeType.equals(new SemanticType("INT",false))){
-                    throw new RuntimeException("TypeError:array size must be of type Int");
-                }
-                TypeNode typenode=arraycreation.getElementType();
-                return new SemanticType(typenode.getName(),true);
+        if (expr instanceof ArrayCreationNode arraycreation) {
+            SemanticType sizeType = inferType(arraycreation.getSize(), symbolTable);
+            if (!sizeType.equals(new SemanticType("INT", false))) {
+                throw new RuntimeException("TypeError:array size must be of type Int");
             }
+            TypeNode typenode = arraycreation.getElementType();
+            return new SemanticType(typenode.getName(), true);
+        }
 
         //for fields Access
         if (expr instanceof FieldAccessNode fieldAccess) {
@@ -210,62 +212,58 @@ private SemanticType currentReturnType;
             return inferFunctionType(id.getName(), call.getArguments(), symbolTable);
         }
 
-        throw new RuntimeException("SemanticError: unknown expression"+expr.getClass().getSimpleName());
+        throw new RuntimeException("SemanticError: unknown expression" + expr.getClass().getSimpleName());
 
     }
 
     //check if a expr is assignable
-    private boolean isAssignable(ExpressionNode target){
+    private boolean isAssignable(ExpressionNode target) {
         return target instanceof IdentifierNode || target instanceof ArrayAccessNode || target instanceof FieldAccessNode;
     }
 
 
     //check the statements
-    private void checkStatement(StatementNode stmt, SymbolTable symbolTable){
-        if (stmt instanceof VariableDeclarationNode var){
-                checkVariableDeclaration(var,symbolTable);
+    private void checkStatement(StatementNode stmt, SymbolTable symbolTable) {
+        if (stmt instanceof VariableDeclarationNode var) {
+            checkVariableDeclaration(var, symbolTable);
 
-        } else if(stmt instanceof AssignmentStatementNode assign){
-            checkAssigment(assign,symbolTable);
+        } else if (stmt instanceof AssignmentStatementNode assign) {
+            checkAssigment(assign, symbolTable);
 
-        }else if(stmt instanceof ExpressionStatementNode exprStmt){
-            checkExpressionStmt(exprStmt,symbolTable);
-        }
-        else if(stmt instanceof BlockNode block){
-            checkBlock(block,symbolTable);
+        } else if (stmt instanceof ExpressionStatementNode exprStmt) {
+            checkExpressionStmt(exprStmt, symbolTable);
+        } else if (stmt instanceof BlockNode block) {
+            checkBlock(block, symbolTable);
 
-        } else if (stmt instanceof IfStatementNode ifstmt){
-            checkIf(ifstmt,symbolTable);
+        } else if (stmt instanceof IfStatementNode ifstmt) {
+            checkIf(ifstmt, symbolTable);
 
-        }else if (stmt instanceof  WhileStatementNode whileStmt){
-            checkWhile(whileStmt,symbolTable);
-        }
-        else if (stmt instanceof  ForStatementNode forStmt){
-            checkFor(forStmt,symbolTable);
-        }
-        else if (stmt instanceof ReturnStatementNode returnStmt) {
+        } else if (stmt instanceof WhileStatementNode whileStmt) {
+            checkWhile(whileStmt, symbolTable);
+        } else if (stmt instanceof ForStatementNode forStmt) {
+            checkFor(forStmt, symbolTable);
+        } else if (stmt instanceof ReturnStatementNode returnStmt) {
             checkReturn(returnStmt, symbolTable);
-        }
-        else{
-            throw new RuntimeException("SemancticError: unknown statement "+stmt+getClass().getSimpleName());
+        } else {
+            throw new RuntimeException("SemancticError: unknown statement " + stmt + getClass().getSimpleName());
         }
 
     }
 
     private void checkExpressionStmt(ExpressionStatementNode exprStmt, SymbolTable symbolTable) {
-        inferType(exprStmt.getExpression(),symbolTable);
+        inferType(exprStmt.getExpression(), symbolTable);
     }
 
 
     private void checkFor(ForStatementNode forStmt, SymbolTable symbolTable) {
-       SymbolInfo info=symbolTable.getSymbol(forStmt.getVariableName());
-       if(info==null){
-           throw new RuntimeException("ScopeError : undefined loop varibale "+forStmt.getVariableName());
-       }
-       SemanticType intType=new SemanticType("INT",false);
-       if(!info.getType().equals(intType)){
-           throw  new RuntimeException("TypeError: for loop variable must be INT");
-       }
+        SymbolInfo info = symbolTable.getSymbol(forStmt.getVariableName());
+        if (info == null) {
+            throw new RuntimeException("ScopeError : undefined loop varibale " + forStmt.getVariableName());
+        }
+        SemanticType intType = new SemanticType("INT", false);
+        if (!info.getType().equals(intType)) {
+            throw new RuntimeException("TypeError: for loop variable must be INT");
+        }
 
         SemanticType startType = inferType(forStmt.getStartValue(), symbolTable);
         SemanticType endType = inferType(forStmt.getEndValue(), symbolTable);
@@ -279,73 +277,73 @@ private SemanticType currentReturnType;
 
     }
 
-    private void checkVariableDeclaration(VariableDeclarationNode var,SymbolTable symbolTable){
-        SemanticType declaredType=toSemanticType(var.getType());
-        if(var.getInitValue()!=null){
-            SemanticType initValueType=inferType(var.getInitValue(),symbolTable);
-            if(!declaredType.equals(initValueType)) {
+    private void checkVariableDeclaration(VariableDeclarationNode var, SymbolTable symbolTable) {
+        SemanticType declaredType = toSemanticType(var.getType());
+        if (var.getInitValue() != null) {
+            SemanticType initValueType = inferType(var.getInitValue(), symbolTable);
+            if (!declaredType.equals(initValueType)) {
                 throw new RuntimeException("TypeError: can't assign" + initValueType + " to " + declaredType);
             }
         }
-        SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE,declaredType);
-        symbolTable.addSymbol(var.getName(),info);
+        SymbolInfo info = new SymbolInfo(var.getName(), SymbolInfo.Kind.VARIABLE, declaredType);
+        symbolTable.addSymbol(var.getName(), info);
 
     }
 
-    private void checkAssigment(AssignmentStatementNode assign,SymbolTable symbolTable){
-        if(!isAssignable(assign.getTarget())) {
+    private void checkAssigment(AssignmentStatementNode assign, SymbolTable symbolTable) {
+        if (!isAssignable(assign.getTarget())) {
             throw new RuntimeException("TypeError: invalid Assignement Target");
         }
-        SemanticType leftType=inferType(assign.getTarget(),symbolTable);
-        SemanticType rightType=inferType(assign.getValue(),symbolTable);
+        SemanticType leftType = inferType(assign.getTarget(), symbolTable);
+        SemanticType rightType = inferType(assign.getValue(), symbolTable);
 
-        if (!leftType.equals(rightType)){
-            throw new RuntimeException("TypeError: can't assign "+rightType+" to "+leftType);
+        if (!leftType.equals(rightType)) {
+            throw new RuntimeException("TypeError: can't assign " + rightType + " to " + leftType);
         }
     }
 
-    private void  checkIf(IfStatementNode ifStmt,SymbolTable symbolTable){
-        SemanticType conditionType=inferType(ifStmt.getCondition(),symbolTable);
-        if(!conditionType.isBool()){
+    private void checkIf(IfStatementNode ifStmt, SymbolTable symbolTable) {
+        SemanticType conditionType = inferType(ifStmt.getCondition(), symbolTable);
+        if (!conditionType.isBool()) {
             throw new RuntimeException("MissingConditionError: if condition must be BOOL");
         }
-        checkBlock(ifStmt.getThenBlock(),symbolTable);
+        checkBlock(ifStmt.getThenBlock(), symbolTable);
 
-        if(ifStmt.getElseBlock() !=null){
-            checkBlock(ifStmt.getElseBlock(),symbolTable);
+        if (ifStmt.getElseBlock() != null) {
+            checkBlock(ifStmt.getElseBlock(), symbolTable);
         }
 
     }
 
-    private void checkWhile(WhileStatementNode whileStmt,SymbolTable symbolTable){
-        SemanticType conditionType=inferType(whileStmt.getCondition(),symbolTable);
+    private void checkWhile(WhileStatementNode whileStmt, SymbolTable symbolTable) {
+        SemanticType conditionType = inferType(whileStmt.getCondition(), symbolTable);
 
-        if(!conditionType.isBool()){
-            throw  new RuntimeException("MissingConditionError : while condition must be BOOL");
+        if (!conditionType.isBool()) {
+            throw new RuntimeException("MissingConditionError : while condition must be BOOL");
         }
-        checkBlock(whileStmt.getBody(),symbolTable);
+        checkBlock(whileStmt.getBody(), symbolTable);
 
     }
 
     //check the block
-    private void checkBlock(BlockNode block,SymbolTable parentTable){
-        SymbolTable localTable=new SymbolTable(parentTable);
-        for (StatementNode stmt:block.getStatements()){
-            checkStatement(stmt,localTable);
+    private void checkBlock(BlockNode block, SymbolTable parentTable) {
+        SymbolTable localTable = new SymbolTable(parentTable);
+        for (StatementNode stmt : block.getStatements()) {
+            checkStatement(stmt, localTable);
         }
     }
 
-    private void checkReturn(ReturnStatementNode returnStmt,SymbolTable symbolTable){
-        if(currentReturnType == null){
-            if(returnStmt.getExpression()!=null){
-                throw  new RuntimeException("ReturnError : void function cannot return a value " );
+    private void checkReturn(ReturnStatementNode returnStmt, SymbolTable symbolTable) {
+        if (currentReturnType == null) {
+            if (returnStmt.getExpression() != null) {
+                throw new RuntimeException("ReturnError : void function cannot return a value ");
             }
         }
-        if(returnStmt.getExpression()==null){
-            throw  new RuntimeException("ReturnError: function must return a value");
+        if (returnStmt.getExpression() == null) {
+            throw new RuntimeException("ReturnError: function must return a value");
 
         }
-        SemanticType returnedType=inferType(returnStmt.getExpression(),symbolTable);
+        SemanticType returnedType = inferType(returnStmt.getExpression(), symbolTable);
 
         if (!currentReturnType.equals(returnedType)) {
             throw new RuntimeException("ReturnError: expected " + currentReturnType + " but found " + returnedType);
@@ -361,7 +359,7 @@ private SemanticType currentReturnType;
             SemanticType expectedType = expectedTypes.get(i);
             SemanticType actualType = inferType(arguments.get(i), symbolTable);
             if (!expectedType.equals(actualType)) {
-                throw new RuntimeException("ArgumentError: argument " + (i+1) + " of " +name+ " should be " +expectedType+ " but found " +actualType);
+                throw new RuntimeException("ArgumentError: argument " + (i + 1) + " of " + name + " should be " + expectedType + " but found " + actualType);
             }
         }
     }
@@ -426,7 +424,7 @@ private SemanticType currentReturnType;
         return fields;
     }
 
-    private void checkVariable(VariableDeclarationNode var,SymbolTable symbolTable){
+    private void checkVariable(VariableDeclarationNode var, SymbolTable symbolTable) {
         if (var.getInitValue() != null) {
             SemanticType varType = toSemanticType(var.getType());
             SemanticType valueType = inferType(var.getInitValue(), symbolTable);
@@ -436,7 +434,8 @@ private SemanticType currentReturnType;
         }
 
     }
-    private void checkConstant(ConstantDeclarationNode constant,SymbolTable symbolTable){
+
+    private void checkConstant(ConstantDeclarationNode constant, SymbolTable symbolTable) {
         SemanticType declaredType = toSemanticType(constant.getType());
         SemanticType valueType = inferType(constant.getValue(), symbolTable);
         if (!declaredType.equals(valueType)) {

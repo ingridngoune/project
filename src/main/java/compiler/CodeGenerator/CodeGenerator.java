@@ -476,21 +476,174 @@ public class CodeGenerator implements Opcodes {
     }
 
     private void generateUnaryExpression(UnaryExpressionNode unary, MethodVisitor mv) {
+        String operator = unary.getOperator();
+        ExpressionNode operand = unary.getExpression();
+        generateExpression(operand, mv);
+        if (operator.equals("MINUS")) {
+            String typeName = getExpressionTypeName(operand);
+            switch (typeName) {
+                case "INT":
+                    mv.visitInsn(INEG);return;
+                case "FLOAT":
+                    mv.visitInsn(FNEG);return;
+                default:
+                    throw new RuntimeException("Unsupported unary minus type: " + typeName);
+            }
+        }
+        if (operator.equals("NOT")) {
+            Label trueLabel = new Label();
+            Label endLabel = new Label();
+            mv.visitJumpInsn(IFEQ, trueLabel);
+            mv.visitInsn(ICONST_0);
+            mv.visitJumpInsn(GOTO, endLabel);
+            mv.visitLabel(trueLabel);
+            mv.visitInsn(ICONST_1);
+            mv.visitLabel(endLabel);
+            return;
+        }
+
+        throw new RuntimeException("Unsupported unary operator: " + operator);
     }
 
     private void generateFieldAccess(FieldAccessNode fieldAccess, MethodVisitor mv) {
+        ExpressionNode target = fieldAccess.getTarget();
+        String fieldName = fieldAccess.getFieldName();
+
+        generateExpression(target, mv);
+        String targetType = getExpressionTypeName(target);
+        TypeNode fieldType = findFieldType(targetType, fieldName);
+        mv.visitFieldInsn(GETFIELD, targetType, fieldName, getTypeDescriptor(fieldType));
     }
 
     private void generateArrayAccess(ArrayAccessNode arrayAccess, MethodVisitor mv) {
+        ExpressionNode array = arrayAccess.getArray();
+        ExpressionNode index = arrayAccess.getIndex();
+        generateExpression(array, mv);
+        generateExpression(index, mv);
+        String elementType = getArrayElementTypeName(array);
+        switch (elementType) {
+            case "INT":
+            case "BOOL":
+                mv.visitInsn(IALOAD);break;
+            case "FLOAT": mv.visitInsn(FALOAD);break;
+            default: mv.visitInsn(AALOAD);break;
+        }
     }
 
     private void generateArrayCreation(ArrayCreationNode arrayCreation, MethodVisitor mv) {
+        TypeNode baseType = arrayCreation.getElementType();
+        ExpressionNode size = arrayCreation.getSize();
+        generateExpression(size, mv);
+        switch (baseType.getName()) {
+            case "INT": mv.visitIntInsn(NEWARRAY, T_INT);break;
+            case "FLOAT": mv.visitIntInsn(NEWARRAY, T_FLOAT);break;
+            case "BOOL": mv.visitIntInsn(NEWARRAY, T_BOOLEAN);break;
+            case "STRING": mv.visitTypeInsn(ANEWARRAY, "java/lang/String");break;
+            default: mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");break;
+        }
     }
 
     private void generateBinaryExpression(BinaryExpressionNode bin, MethodVisitor mv) {
+        ExpressionNode left = bin.getLeft();
+        ExpressionNode right = bin.getRight();
+        String operator = bin.getOperator();
+        generateExpression(left, mv);
+        generateExpression(right, mv);
+        String typeName = getExpressionTypeName(left);
+        if (isArithmeticOperator(operator)) {
+            mv.visitInsn(getArithmeticOperator(operator, typeName));
+            return;
+        }
+        if (isComparisonOperator(operator)) {
+            generateComparison(getComparisonOperator(operator, typeName), mv);
+            return;
+        }
+        if (isLogicalOperator(operator)) {
+            generateLogicalExpression(operator, mv);
+            return;
+        }
+        throw new RuntimeException("Unsupported binary operator: " + operator);
+    }
+
+    private void generateLogicalExpression(String operator, MethodVisitor mv) {
+        switch (operator) {
+            case "AND":
+                mv.visitInsn(IAND);return;
+            case "OR":
+                mv.visitInsn(IOR);return;
+            default:
+                throw new RuntimeException("Unsupported logical operator: " + operator);
+        }
+    }
+
+    private int getComparisonOperator(String operator, String typeName) {
+        switch (typeName) {
+            case "INT":
+            case "BOOL":
+                switch (operator) {
+                    case "GREATER": return IF_ICMPGT;
+                    case "LESS": return IF_ICMPLT;
+                    case "GREATER_EQUAL": return IF_ICMPGE;
+                    case "LESS_EQUAL": return IF_ICMPLE;
+                    case "EQUAL": return IF_ICMPEQ;
+                    case "NOT_EQUAL": return IF_ICMPNE;
+                }
+                break;
+        }
+
+        throw new RuntimeException("Unsupported comparison operation: " + operator + " for type " + typeName);
+    }
+
+    private int getArithmeticOperator(String operator, String typeName) {
+        switch (operator) {
+            case "PLUS":
+                switch (typeName) {
+                    case "INT": return IADD;
+                    case "FLOAT": return FADD;
+                }
+                break;
+            case "MINUS":
+                switch (typeName) {
+                    case "INT": return ISUB;
+                    case "FLOAT": return FSUB;
+                }
+                break;
+            case "MULTIPLY":
+                switch (typeName) {
+                    case "INT": return IMUL;
+                    case "FLOAT": return FMUL;
+                }
+                break;
+            case "DIVIDE":
+                switch (typeName) {
+                    case "INT": return IDIV;
+                    case "FLOAT": return FDIV;
+                }
+                break;
+            case "MODULO":
+                switch (typeName) {
+                    case "INT": return IREM;
+                    case "FLOAT": return FREM;
+                }
+                break;
+        }
+        throw new RuntimeException("Unsupported arithmetic operation: " + operator + " for type " + typeName);
     }
 
     private void generateIdentifier(IdentifierNode iden, MethodVisitor mv) {
+        String name = iden.getName();
+        LocalVariableInfo info = localVariables.get(name);
+        int slot = info.getSlot();
+        TypeNode type = info.getType();
+        String typeName = type.getName();
+        switch (typeName) {
+            case "INT":
+            case "BOOL":
+                mv.visitVarInsn(ILOAD, slot);
+                break;
+            case "FLOAT": mv.visitVarInsn(FLOAD, slot);break;
+            default: mv.visitVarInsn(ALOAD, slot);break;
+        }
     }
 
 
